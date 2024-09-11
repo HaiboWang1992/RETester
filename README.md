@@ -1,8 +1,8 @@
 # A Comprehensive Study of Refactoring Engine Bugs
 
-This repository consists of three main folders: Dataset, and Transferability_study.
+This repository consists of three main folders: dataset, and transferability_study.
 
-## Dataset
+## dataset
 We put the dataset usded in our papers into this folder.
 Including
 
