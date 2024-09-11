@@ -12,6 +12,6 @@ There are five files, each represents the bug reports from different refactoring
 5. Netbeans_bug_reports_from_github.csv: NetBeans refactoring bug reports from GitHub.
 
 ### transferability_study
-Bugs found by our transferability study (Section 5 in manuscript) are in this folder.
+Bugs found by our transferability study (Section 5 in our paper) are in this folder.
 
 
