@@ -1,4 +1,4 @@
-# A Comprehensive Study of Refactoring Engine Bugs
+# Towards Understanding Refactoring Engine Bugs
 
 This repository consists of two folders: dataset, and transferability_study.
 
