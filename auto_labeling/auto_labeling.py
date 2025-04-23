@@ -117,8 +117,6 @@ def get_data_from_txt(file_path):
     return json_list
 
 
-# You should know that the symptom must be one of the following, not others:
-# compile error;refactoring not available;behavior change;incorrect warning message;exception;failed refactor ing;comment related;unnecessary change;broken breakpoints;bad performance
 
 def build_extraction_prompt():
     # Define the first and last multi-line strings
