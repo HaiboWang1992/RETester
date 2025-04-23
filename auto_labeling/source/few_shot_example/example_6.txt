@@ -1,0 +1,179 @@
+<Example Six Start>
+<Bug Report Content Start>
+Bug 104293 - [1.5][DOM] Extract local doesn't replace all occurences of expression.
+Description Brian Miller CLA 2005-07-18 17:57:41 EDT
+Steps:
+1) Hilite the first 'asList(side)' expression.
+2) Pick the Refactor>>ExtractLocalVariable menu item.
+3) Be sure the "Replace all occurrences" checkbox is checked.
+4) Press OK button.
+
+
+---------------------- Bug.java ----------------
+import static java.util.Arrays.*;
+class Bug {
+     {
+        String[]side=new String[0];
+         if(true){
+            System.out.println(asList(side));
+         }
+        else{
+            System.out.println(asList(side));
+        }
+    }
+}
+Comment 1Markus Keller CLA 2005-07-19 10:31:33 EDT
+Moving to JDT/Core.
+
+The problem is that the method bindings for the two method invocations
+'asList(side)' are not identical (but they are isEqualTo(..) each other and
+their keys are equal).
+
+The JdtASTMatcher compares bindings by identity, which fails here.
+Comment 2Philipe Mulet CLA 2005-07-19 12:02:24 EDT
+DOM AST bindings are mapping 1 to 1 to compiler ones, which in this case are not
+identical (2 invocations of a generic method).
+I don't think the spec ever said that method bindings would be identical.
+Comment 3Olivier Thomann CLA 2005-07-19 12:04:23 EDT
+Markus,
+
+Where did you find that method bindings are supposed to be identical?
+Comment 4Markus Keller CLA 2005-07-19 12:45:08 EDT
+From IBinding:
+
+/**
+ * There is no special definition of equality for bindings; equality is
+ * simply object identity.  Within the context of a single cluster of
+ * bindings, each binding is represented by a distinct object. However,
+ * between different clusters of bindings, the binding objects may or may
+ * not be different; in these cases, the client should compare bindings
+ * using {@link #isEqualTo(IBinding)}, which checks their keys.
+ *
+ * @param obj {@inheritDoc}
+ * @return {@inheritDoc}
+ */
+public boolean equals(Object obj);
+
+
+It's not crystal clear, but "Within the context of a single cluster of bindings,
+each binding is represented by a distinct object" is IMO the main definition.
+The Javadoc then explains that users should use #isEqualTo(IBinding) for
+different clusters, from which I assume that #isEqualTo(IBinding) is not
+necessary when comparing bindings from the same cluster.
+Comment 5Olivier Thomann CLA 2005-07-20 14:10:30 EDT
+I think this is true for type bindings, but I doubt this is true for field or
+method bindings.
+Comment 6Olivier Thomann CLA 2005-07-20 14:17:20 EDT
+Jim, I think this spec is wrong for method and fields.
+Philippe, is this true for generic types?
+
+I would recommend to always use isEqualTo(...).
+Comment 7Jim des Rivieres CLA 2005-07-20 17:27:37 EDT
+Prior to generics, I believe the story was simple. Each binding was a distinct
+object and all bindings were represented canonically. Generics has changed
+that: now some of the bindings are not represented canonically.
+
+The original spec did not really deal with the issue of canonical
+representations, because it was a non-issue at the time it was written.
+
+Since it would be difficult/expensive for the compiler or AST to canonicalize
+all bindings, I believe we should clarify the spec. and tell clients that the
+bindings are usually canonically but get a little weird in and around
+generics. If the different matters to the client (as it does to JDT
+refactoring), they should use #isEqualTo(IBinding) even when comparing
+bindings from the same cluster.
+
+Markus, Are you ok with this?
+Comment 8Markus Keller CLA 2005-07-21 05:23:44 EDT
+Hm, since generics are everywhere now, that would mean that we have to change
+all our uses of == to #isEqualTo(IBinding).
+
+Wouldn't it be better then to implement #equals(Object) and #hashCode(), such
+that bindings can also be used in hashsets, etc.? Doing this change would
+basically mean we have to look over all our code, and I'd rather do this only
+once :-).
+Comment 9Jim des Rivieres CLA 2005-07-23 20:11:24 EDT
+Interesting suggestion. The spec for IBinding.equals(Object) clearly states
+that bindings are compared with ==. This means that changing it to use
+isEqualTo(IBinding) is clearly an API contract change. The contract change
+would be a breaking API change.
+
+As a practical matter, returning non-canonical bindings breaks some clients.
+JDT UI is one example.
+
+Philippe/Olivier, What would be involved in making sure all bindings exposed
+by the AST binding API are canonical within a cluster?
+Comment 10Martin Aeschlimann CLA 2005-07-25 11:08:02 EDT
+Is it really that expensive to canonicalize the bindings of this example?
+I find the effects on the API client side much more severe.
+
+The spec of equals is really clear. Adding a loosly specified 'doubt' will lead
+to have us converting all == to isEqualTo, just to make sure we don't miss a
+case e were not aware of.
+If references to List<String> are always the same, so should all references to
+e.g. Collections.asList(new ArrayList()) be.
+
+
+Comment 11Philipe Mulet CLA 2005-07-26 09:17:21 EDT
+Anything is possible in theory. Either the DOM could protect itself, or the
+compiler could cache generic method invocation binding so as to reuse the same
+one over and over again. The latter approach would be more in line with the
+general approach for canonicalizing types.
+
+Kent: do you agree ?
+Comment 12Kent Johnson CLA 2005-07-26 10:49:58 EDT
+In theory - yes.
+
+But in reality, I'm not convinced we can find all the places to cache
+generated method bindings.
+Comment 13Dirk Baeumer CLA 2005-07-26 13:06:14 EDT
+As pointed out by Markus and Martin our current code relies on the fact the
+bindings for identical elements are indentical for AST created in the same cluster.
+
+Removing this assumption is quite some for us to do (we have to find all places
+as well and we can't even search for IBinding == IBinding). Additional other
+clients have to adapt their code as well.
+Comment 14Kent Johnson CLA 2005-07-26 14:07:42 EDT
+I understand but that doesn't make it doable for us either.
+Comment 15Dirk Baeumer CLA 2005-08-11 09:23:00 EDT
+What are we going to do here ?
+
+The current behaviour will become more and more a problem (in mark occurrences,
+source actions, refactoring) as soon as users start to make more use of 1.5
+features.
+
+IMO this is even an issue we have to consider for 3.1.1.
+Comment 16Jim des Rivieres CLA 2005-08-11 09:46:10 EDT
+I agree with Philippe that we should try to canonicalize generic method
+invocation bindings in the compiler. Barring that, we should try to
+canonicalize them within the AST implementation.
+
+Kent: could you investigate further to see whether it would feasible to find
+all the places to cache generated generic method bindings ?
+Comment 17Philipe Mulet CLA 2006-04-12 17:47:26 EDT
+Olivier added ASTConverter15Test#test0214
+Comment 18Philipe Mulet CLA 2006-04-13 09:45:34 EDT
+Implementing canonicalization for 3.2RC2.
+Need to double check it has no impact on JDT/UI.
+Comment 19Philipe Mulet CLA 2006-04-13 09:59:14 EDT
+Created attachment 38510 [details]
+Patch implementing method canonicalization
+Comment 20Philipe Mulet CLA 2006-04-14 04:52:53 EDT
+Fixed.
+Comment 21Philipe Mulet CLA 2006-04-14 04:56:51 EDT
+Martin - pls cast your vote for RC2.
+Comment 22Olivier Thomann CLA 2006-04-17 12:52:38 EDT
+added ASTConverter15Test#test0215,0216
+Comment 23Martin Aeschlimann CLA 2006-04-18 08:47:05 EDT
++1 from JDT/UI. All our tests pass.
+Comment 24Olivier Thomann CLA 2006-04-27 22:49:36 EDT
+Verified with I20060427-1600 for RC2.
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "extract local variable",
+  "Symptom": "failed refactoring",
+  "InputProgramCharacteristic": ""
+}
+<Example Six End>

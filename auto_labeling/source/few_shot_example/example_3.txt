@@ -1,0 +1,42 @@
+<Example Three Start>
+<Bug Report Content Start>
+"Inline method refactoring leads to changes in refactoring access permissions #1360
+Eclipse version：2023-9
+Repeat the steps：
+
+select “originalMethod() ”
+click “Refactor-inlinemethod”
+
+class OriginalClass {
+private boolean flag = false;
+public synchronized void originalMethod() throws InterruptedException {
+// Some logic here
+flag = true;
+notify();
+}
+public void callerMethod() throws InterruptedException {
+        	originalMethod() ;
+}
+}
+
+
+
+
+
+
+
+
+
+
+refactoring result:
+
+Expected behavior: Before refactoring, inline methods contain access permissions for synchronization modifiers, but are missing after inlining; Synchronized block addition for inline method body code"
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "inline method",
+  "Symptom": "behavior change",
+  "InputProgramCharacteristic": "synchronized block"
+}
+<Example three End>

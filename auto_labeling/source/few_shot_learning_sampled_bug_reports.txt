@@ -1,0 +1,10 @@
+{"html_url": "https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1533"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=303617"}
+{"html_url": "https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1360"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=95121"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=91470"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=104293"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=99974"}
+{"html_url": "https://youtrack.jetbrains.com/issue/IDEA-314882/Inline-method-adds-unnecessary-parentheses-when-inlining-a-string-concatenation-into-a-string-concatenation"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=280518"}
+{"html_url": "https://bugs.eclipse.org/bugs/show_bug.cgi?id=570587"}

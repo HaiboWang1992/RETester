@@ -1,0 +1,80 @@
+<Example Seven Start>
+<Bug Report Content Start>
+Bugzilla – Bug 99974	[refactoring] Inline method deletes all comments	Last modified: 2005-06-15 06:01:35 EDT
+Description David Saff CLA 2005-06-14 11:04:05 EDT
+In RC2.
+
+Given code:
+
+
+public class Foo {
+	private int bar() {
+		// an important fact about a
+		int a = 1;
+		// an important fact about returning
+		return a;
+		// one final precious thought
+	}
+
+	private void baz() {
+		bar();
+	}
+}
+
+Inlining bar deletes all of the inline comments.
+Comment 1Dirk Baeumer CLA 2005-06-15 03:28:49 EDT
+This is not quite as drammatic as it sounds since normally all comments between
+the first and the last statement of the method are kept (excpet when inlining a
+method with a return statement at the end since the comment isn't covered here).
+So for example
+
+	private void bar() {
+		int a = 1;
+		// an important fact about returning
+		// one final precious thought
+                bar();
+	}
+
+all comments are kept. However still quitre annying...
+Comment 2Dirk Baeumer CLA 2005-06-15 04:40:15 EDT
+Fix is easy. All we have to do is to use the extended source ranges which cover
+comments as well.
+
+Opt to fix this for RC2. Dani, can you cast your vote.
+
++1 for RC3.
+Comment 3Dirk Baeumer CLA 2005-06-15 04:40:54 EDT
+Created attachment 23135 [details]
+Additional test cases
+Comment 4Dirk Baeumer CLA 2005-06-15 04:41:47 EDT
+Created attachment 23136 [details]
+Patch against Source Provider
+Comment 5Dani Megert CLA 2005-06-15 05:36:02 EDT
+Reviewed the patch.
++1 for 3.1 RC3.
+Comment 6Dirk Baeumer CLA 2005-06-15 05:58:26 EDT
+For RC2 I fixed the cases where leading and trailing comments are lost in void
+methods. So the case:
+
+	private void bar() {
+                // comment
+                foo();
+		// one final precious thought
+                foo();
+                // comment
+	}
+
+is now handled correcty. I opened bug 100143 to track the remaining issues which
+need more work. So when verifying the bug please verify the above scenario not
+the one provided in comment #0
+Comment 7Dirk Baeumer CLA 2005-06-15 06:01:35 EDT
+Fix got reviewed by Markus Keller.
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "inline method",
+  "Symptom": "comment related",
+  "InputProgramCharacteristic": "comment related"
+}
+<Example Seven End>

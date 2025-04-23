@@ -1,0 +1,43 @@
+<Example Four Start>
+<Bug Report Content Start>
+"Bug 95121 - [refactoring] Change method signature refuses to operate on annotation member
+David Saff 2005-05-13 10:17:23 EDT
+Against I20050513-0010
+
+Given:
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+
+@Retention(RetentionPolicy.RUNTIME)
+public @interface IsTest {
+	String setUp() default "";
+	String tearDown() default "";
+}
+
+Select setUp(), and then Refactor > Change Method Signature.  Error dialog pops
+up:  "To activate this refactoring, please select the name of a non-binary
+method."  I can understand not wanting to offer Change Method Signature for
+annotation members: the only useful things you could do are changing the return
+type and the name.  But the error message doesn't seem to match.
+Dirk Baeumer 2005-05-17 05:09:19 EDT
+Not cirtical for 3.1. Markus, if we have time we should improve the error
+message here.
+Markus Keller 2005-05-24 05:26:16 EDT
+Fixed.
+Benjamin Pasero 2005-05-30 06:42:33 EDT
+Verified I20050527-1300
+Please update state.
+
+Regards,
+Ben"
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "change method signature",
+  "Symptom": "incorrect warning message",
+  "InputProgramCharacteristic": "annotation"
+}
+<Example Four End>

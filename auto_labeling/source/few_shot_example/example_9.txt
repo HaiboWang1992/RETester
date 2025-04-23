@@ -1,0 +1,52 @@
+<Example Nine Start>
+<Bug Report Content Start>
+"Bug 280518 - [breakpoints] [refactoring] method breakpoints all change to one method
+Darin Wright 2009-06-16 16:24:40 EDT
+3.5 RC4
+
+Steps:
+* using the following source, place a method breakpoint on each method
+* select "methodThree()" in the editor outline
+* refactor its name to "methodFour()"
+
+result: I end up with three breakpoints on "methodFour()"
+
+public class MethodTest {
+
+	public void methodOne() {
+		System.err.println("one");
+	}
+
+	public void methodTwo() {
+		System.err.println("two");
+	}
+
+	public void methodThree() {
+		System.err.println("three");
+	}
+
+}
+Michael Rennie 2009-06-17 01:13:36 EDT
+Also in 3.4.x
+
+the problem is coming from BreakpointRenameMethodParticipant#gatherChanges(..). We should be asking if any of the markers actually reference the original method, but instead all we are doing is asking if the declaring type is the same for each of the method breakpoints - causing all markers to be updated to the new method (methodFour)
+Michael Rennie 2009-06-17 01:23:38 EDT
+Created attachment 139395 [details]
+proposed fix
+
+check that the method name and signature in the marker match the original method name and signature - so we only update method breakpoints actually set on the method being renamed - instead of all method method breakpoints in the type.
+Michael Rennie 2009-06-17 01:24:54 EDT
+we might consider for 3.5.1 as the fix is small and prevents loss of data (breakpoints and conditional breakpoints).
+Michael Rennie 2009-06-29 15:34:56 EDT
+applied patch to HEAD, please verify Curtis
+Curtis Windatt 2009-06-29 17:09:17 EDT
+Verified."
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "rename method",
+  "Symptom": "broken breakpoints",
+  "InputProgramCharacteristic": ""
+}
+<Example Nine End>

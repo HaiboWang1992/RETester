@@ -1,0 +1,51 @@
+<Example Ten Start>
+<Bug Report Content Start>
+"Bug 570587 - Unnecessary loss of performance in refactoring
+Carsten Hammer 2021-01-23 04:29:46 EST
+For Bug 436581 there has been an Assert statement added to help in case of an issue.
+Unfortunately because of  Bug 570583 the performance penalty for this use case is higher than it should.
+
+Until https://git.eclipse.org/r/c/equinox/rt.equinox.bundles/+/175187 is merged we should change the code to only call toString() if really needed.
+
+So the code that currently looks like this:
+
+Assert.isTrue(fCUnit.isWorkingCopy(), fCUnit.toString());
+
+should be changed to
+
+Assert.isTrue(fCUnit.isWorkingCopy(), !fCUnit.isWorkingCopy()?fCUnit.toString():""); //$NON-NLS-1$
+
+or
+
+Assert.isTrue(fCUnit.isWorkingCopy(), fCUnit.isWorkingCopy()?"":fCUnit.toString()); //$NON-NLS-1$
+
+whatever you prefer.
+Jeff Johnston 2021-03-18 17:39:01 EDT
+The following was extracted from the git log message and placed here instead:
+
+You can log the time spent on this (Microseconds per call) using the
+following code:
+
+long start = System.nanoTime();
+Assert.isTrue(fCUnit.isWorkingCopy(), fCUnit.toString());
+long end = System.nanoTime();
+long diff = end - start;
+long convert = TimeUnit.MICROSECONDS.convert(diff,TimeUnit.NANOSECONDS);
+if (convert > 10) // Just interested in slow calls
+    System.out.println("### " + convert);  //$NON-NLS-1$
+Eclipse Genie 2021-03-18 21:13:38 EDT
+Gerrit change https://git.eclipse.org/r/c/jdt/eclipse.jdt.ui/+/175244 was merged to [master].
+Commit: http://git.eclipse.org/c/jdt/eclipse.jdt.ui.git/commit/?id=0fa439b2ed9e74421fb8bf3f2c23be2dad2d10cf
+Jeff Johnston 2021-03-18 21:13:54 EDT
+Released for 4.20M1
+Jeff Johnston 2021-04-06 14:44:11 EDT
+Verified for 4.20M1 using I20210406-0600 build"
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "not specified",
+  "Symptom": "bad performance",
+  "InputProgramCharacteristic": "time-consuming method call"
+}
+<Example Ten End>

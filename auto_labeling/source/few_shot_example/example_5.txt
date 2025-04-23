@@ -1,0 +1,139 @@
+<Example Five Start>
+<Bug Report Content Start>
+"Bug 91470 - [refactoring] [inline] Inline method fails on methods with a vararg parameter
+Rob Hughes 2005-04-14 18:01:18 EDT
+In 3.1 M6 trying to inline the following method fails with an error
+
+public static final String format(String key, Object ... args)
+{
+    return MessageFormat.format(key, args);
+}
+
+If I change the type to Object[] the inlining works.
+
+Here is the stack trace:
+java.lang.reflect.InvocationTargetException
+at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:327)
+at
+org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2.run(RefactoringWizardDialog2.java:282)
+at
+org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:570)
+at
+org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:413)
+at
+org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:74)
+at
+org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:114)
+at
+org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2.previewPressed(RefactoringWizardDialog2.java:436)
+at
+org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2.access$3(RefactoringWizardDialog2.java:434)
+at
+org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2$1.widgetSelected(RefactoringWizardDialog2.java:570)
+at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:89)
+at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:82)
+at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:842)
+at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:2894)
+at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:2527)
+at org.eclipse.jface.window.Window.runEventLoop(Window.java:803)
+at org.eclipse.jface.window.Window.open(Window.java:781)
+at
+org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation$1.run(RefactoringWizardOpenOperation.java:125)
+at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:69)
+at
+org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:138)
+at
+org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:40)
+at
+org.eclipse.jdt.internal.ui.refactoring.actions.InlineMethodAction.run(InlineMethodAction.java:137)
+at
+org.eclipse.jdt.internal.ui.refactoring.actions.InlineMethodAction.run(InlineMethodAction.java:124)
+at org.eclipse.jdt.ui.actions.InlineAction.tryInlineMethod(InlineAction.java:143)
+at org.eclipse.jdt.ui.actions.InlineAction.run(InlineAction.java:116)
+at
+org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:216)
+at
+org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:188)
+at org.eclipse.jface.action.Action.runWithEvent(Action.java:996)
+at
+org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:538)
+at
+org.eclipse.jface.action.ActionContributionItem.access$2(ActionContributionItem.java:488)
+at
+org.eclipse.jface.action.ActionContributionItem$5.handleEvent(ActionContributionItem.java:400)
+at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:82)
+at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:842)
+at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:2894)
+at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:2527)
+at org.eclipse.ui.internal.Workbench.runEventLoop(Workbench.java:1570)
+at org.eclipse.ui.internal.Workbench.runUI(Workbench.java:1534)
+at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:306)
+at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:143)
+at org.eclipse.ui.internal.ide.IDEApplication.run(IDEApplication.java:103)
+at
+org.eclipse.core.internal.runtime.PlatformActivator$1.run(PlatformActivator.java:228)
+at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:344)
+at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:156)
+at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
+at
+sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+at java.lang.reflect.Method.invoke(Method.java:585)
+at org.eclipse.core.launcher.Main.invokeFramework(Main.java:315)
+at org.eclipse.core.launcher.Main.basicRun(Main.java:268)
+at org.eclipse.core.launcher.Main.run(Main.java:942)
+at org.eclipse.core.launcher.Main.main(Main.java:926)
+Caused by: org.eclipse.jdt.internal.corext.Assert$AssertionFailedException: null
+argument;
+at org.eclipse.jdt.internal.corext.Assert.isNotNull(Assert.java:108)
+at org.eclipse.jdt.internal.corext.Assert.isNotNull(Assert.java:86)
+at
+org.eclipse.jdt.internal.corext.refactoring.RefactoringSearchEngine2.<init>(RefactoringSearchEngine2.java:166)
+at
+org.eclipse.jdt.internal.corext.refactoring.code.TargetProvider$MemberTypeTargetProvider.getAffectedCompilationUnits(TargetProvider.java:335)
+at
+org.eclipse.jdt.internal.corext.refactoring.code.InlineMethodRefactoring.checkFinalConditions(InlineMethodRefactoring.java:197)
+at
+org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:84)
+at
+org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:114)
+at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:1714)
+at
+org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:86)
+at
+org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:113)
+Root exception:
+org.eclipse.jdt.internal.corext.Assert$AssertionFailedException: null argument;
+at org.eclipse.jdt.internal.corext.Assert.isNotNull(Assert.java:108)
+at org.eclipse.jdt.internal.corext.Assert.isNotNull(Assert.java:86)
+at
+org.eclipse.jdt.internal.corext.refactoring.RefactoringSearchEngine2.<init>(RefactoringSearchEngine2.java:166)
+at
+org.eclipse.jdt.internal.corext.refactoring.code.TargetProvider$MemberTypeTargetProvider.getAffectedCompilationUnits(TargetProvider.java:335)
+at
+org.eclipse.jdt.internal.corext.refactoring.code.InlineMethodRefactoring.checkFinalConditions(InlineMethodRefactoring.java:197)
+at
+org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:84)
+at
+org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:114)
+at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:1714)
+at
+org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:86)
+at
+org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:113)
+Dirk Baeumer 2005-05-03 06:16:57 EDT
+Fixed the NPE. However the test case reveal an interesting use case where the
+generation of the args array can be avoided. See bug 93505 for details.
+Martin Aeschlimann 2005-05-10 12:56:18 EDT
+verified by David Saff on I20050509-2010
+Dirk Baeumer 2005-05-10 14:47:02 EDT
+*** Bug 94169 has been marked as a duplicate of this bug. ***"
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "inline method",
+  "Symptom": "exception",
+  "InputProgramCharacteristic": "vararg parameter"
+}
+<Example Five End>

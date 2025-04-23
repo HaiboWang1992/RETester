@@ -1,0 +1,3 @@
+<Additional Requirements Start>
+For the input program characteristic, it should be related with the refactoring operation, if the input program does not have any special characteristic, just set it as empty, like "InputProgramCharacteristic": "".
+<Additional Requirements End>

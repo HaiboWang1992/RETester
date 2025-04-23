@@ -1,0 +1,32 @@
+<Example Eight Start>
+<Bug Report Content Start>
+"Inline method adds unnecessary parentheses when inlining a string concatenation into a string concatenation
+Inline the string() method in the following code.
+class X {
+  String string() {
+    return "heavy" + "⚡️" + "metal";
+  }
+
+  String x() {
+    "🤘" + string() + "🤘"
+  }
+}
+
+ result:
+class X {
+    String x() {
+        return "🤘" + ("heavy" + "⚡️" + "metal") + "🤘";
+    }
+}
+
+ Since both expressions are of the string type, the parentheses are unnecessary.
+"
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "inline method",
+  "Symptom": "unnecessary change",
+  "InputProgramCharacteristic": ""
+}
+<Example Eight End>

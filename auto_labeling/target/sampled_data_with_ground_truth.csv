@@ -1,0 +1,100 @@
+html_url,extracted_refactoring_type,extracted_symptom,extracted_input_program_characteristic,ground_refactoring_type,ground_symptom,ground_input_program_characteristic
+https://youtrack.jetbrains.com/issue/IDEA-154669/Change-signature-should-remove-Override-when-refactor-only-current-method,change method signature,compiler error due to lingering annotation,override method,change method signature,compile error,annotation
+https://youtrack.jetbrains.com/issue/IDEA-300134/Introduce-Field-in-an-interface-should-probably-be-disabled,introduce field,compile error,interface with default method,Introduce Field,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=573884,extract superclass,compile error,final fields,extract superclass,compile error,super constructor
+https://youtrack.jetbrains.com/issue/IDEA-336815/Inline-variable-misleading-error-message-when-compile-errors-are-present,inline variable,misleading error message,compile error,inline variable,incorrect warning message,
+https://youtrack.jetbrains.com/issue/IDEA-135083/Extract-variable-from-expression-lambda-and-changing-name-breaks-code,extract variable,variable name breaks code,lambda expression,extract variable,compile error,lambda
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=475186,rename method,incorrect renaming,overloaded method,rename method,behavior change,overloaded method
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/348,extract local variable,potential side effects,expression with side effects,Extract Local Variable,behavior change,
+https://youtrack.jetbrains.com/issue/IDEA-152173/Inline-method-refactoring-allows-to-inline-instance-method-into-static-one,inline method,compile error,instance method to static method,inline method,compile error,static method
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1045,make static,overlapping text edits,method,Make method Static,crash,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=74759,introduce factory,incorrect refactoring,nested constructors,introduce factory,compile error,nested constructor
+https://youtrack.jetbrains.com/issue/IDEA-155578/Push-members-down-no-warning-when-move-generic-method-to-not-parametrized-super-class,push members down,missing warning,generic method,Push members down,compile error,java generics
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=95153,move inner class,error thrown,inner class with reference to outer class,move member type to new file,crash,
+https://youtrack.jetbrains.com/issue/IDEA-93582/Moving-more-than-one-static-method-at-a-time-leaves-broken-calls-between-them.,move method,syntax error,static method,move method,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-104536/red-code-after-inline-variable,inline variable,code changes,method with a for loop,inline variable,compile error,foreach
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=97397,change method signature,invalid parameter type,varargs,change method signature,failed refactoring,varargs
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=122389,extract method,test failure,while loop with variable assignments,extract method,behavior change,
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1043,make static,incorrect parameter documentation placement,existing javadoc comment,Make method Static,comment related,
+https://youtrack.jetbrains.com/issue/IDEA-142291/Pull-members-up-to-cyclically-dependent-class-causes-StackOverflowError,pull members up,StackOverflowError,cyclically dependent class,pull members up,crash,cyclically dependent class
+https://youtrack.jetbrains.com/issue/IDEA-140839/Generic-arguments-are-incorrectly-refactored-when-nested-classes-are-involved.,move class,compile error,nested class,move class to upper level,compile error,java generics
+https://youtrack.jetbrains.com/issue/IDEA-138033/ExtractParameterObject-refactoring-changing-parameters-to-extract-default-names-produces-invalid-code-in-case-of-new-class,extract parameter object,invalid code,new class generation,extract parameter,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-138895/Extract-Function-Parameter-produces-incorrect-code-when-invoked-from-anonymous-class,extract function parameter,compile error,anonymous class,extract parameter,compile error,anonymous class
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=251572,encapsulate field,exception,splitted array type,encapsulate field,crash,
+https://youtrack.jetbrains.com/issue/IDEA-135610/Inline-variable-doesnt-work-in-special-case,inline variable,refactoring not available,inline shortcut,inline variable,incorrect warning message,
+https://youtrack.jetbrains.com/issue/IDEA-127411/Problem-with-inline-method,inline method,incorrect variable reference,,inline method,behavior change,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=81441,rename method,refactoring not available,annotation,rename method,crash,annotation
+https://youtrack.jetbrains.com/issue/IDEA-309095/Improve-the-Safety-of-Introduce-Variable-Refactorings-concening-ClassCasts,extract local variable,ClassCastException,type checking with instanceof,introduce variable,crash,instanceof
+https://youtrack.jetbrains.com/issue/IDEA-125995/Type-migration-should-accurate-change-definition-of-interface-class-method-with-generics,type migration,incorrect type change,generics,Type migration,compile error,java generics
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=574736,rename variable,refactoring unsuccessful,pattern matching,rename variable,crash,switch case
+https://youtrack.jetbrains.com/issue/IDEA-147535/refactor-deleting-a-method-argument-retains-javadocs-of-deleted-argument,delete method argument,javadoc retained incorrectly,method with multiple arguments,change method signature,comment related,comment related
+https://youtrack.jetbrains.com/issue/IDEA-112570/Extract-Method-from-statement-lambda-does-not-take-parameters-from-enclosing-scope,extract method,missing parameters,lambda expression,extract method,compile error,lambda
+https://youtrack.jetbrains.com/issue/IDEA-139292/Extract-method-refactoring-in-local-anonymous-class-introduces-unnecessary-parameter,extract method,unnecessary parameter,lambda expression,extract method,unnecessary change,lambda
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=108115,extract local variable,refactoring not effective,generic methods,extract local variable,failed refactoring,java generics
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=20017,self encapsulate,compile error,assignment using this.field,Self Encapsulate field,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=286221,move method,compile error,duplicate methods,move method,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-145795/Inline-method-refactoring-can-change-behavior.,inline method,behavior change,missing parentheses in expression,inline method,behavior change,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=407985,extract method,exception or incorrect refactoring,lambda expressions,extract method,crash,lambda
+https://youtrack.jetbrains.com/issue/IDEA-114908/Moving-a-static-method-and-static-inner-class-creates-broken-code,move method,infinite recursion,static method and static inner class,move class to upper level,crash,inner class
+https://youtrack.jetbrains.com/issue/IDEA-274500/Errors-when-extracting-constants-as-nested-enum,extract enum,incorrect parameter conversion,nested class,extract variable as enum,compile error,enum
+https://youtrack.jetbrains.com/issue/IDEA-131841/Issue-in-refractorencapsulate-field-when-using-increment-operator-on-a-member,encapsulate field,compile error,increment operator,encapsulate field,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=100846,change method signature,loss of functionality,binary method,change method signature,behavior change,
+https://youtrack.jetbrains.com/issue/IDEA-150138/Refactoring-functional-interface-signatures,change method signature,incorrect warning message,functional interface,change method signature,incorrect warning message,functional interface
+https://youtrack.jetbrains.com/issue/IDEA-154628/Incorrect-constructor-...-will-become-inaccessible-...-warning-during-refactoring,move class,incorrect warning message,protected constructor,Move class to upper level,incorrect warning message,
+https://youtrack.jetbrains.com/issue/IDEA-84207/Refactor-Move-method-bug,move method,incorrect variable reference,method dependencies,move method,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=379095,introduce parameter,NullPointerException,abstract class with variable,introduce parameter,crash,
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1286,extract method,incorrect yield usage,switch expression,extract method,compile error,"switch, yield"
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=386518,extract method,ClassCastException and NullPointerException,for-each loop,extract method,crash,foreach
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=406786,extract method,exception,interface with lambda expressions and default/static methods,extract Method,crash,lambda
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=97521,move method,move not allowed,generic type,move method,incorrect warning message ,java generics
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=573643,extract local variable,refactoring failure,constructor argument,extract local variable,behavior change,super constructor
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=38469,inline method,behavior change,inner class,inline method,behavior change,super constructor
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=97213,push down method,missing import and potential errors,varargs,push down method,compile error,varargs
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/950,convert string concatenation to text block,null pointer exception,,Convert String contenation to Text Block ,crash,
+https://youtrack.jetbrains.com/issue/IDEA-152514/Invert-boolean-works-incorrectly-with-final-fields,invert boolean,compile error,final field,invert boolean,compile error,
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1023,extract constant,exception,package declaration,Extract Constant,crash,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=572100,move type to new file,ClassCastException,record interface,Move member type to new File,crash,record
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=100212,encapsulate field,illegal static import,static import,encapsulate field,compile error,static import
+https://youtrack.jetbrains.com/issue/IDEA-86007/Inline-Class-does-not-add-braces-to-if-statements-when-they-are-needed,inline class,invalid syntax,if statements,inline class,behavior change,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=209937,push down method,null pointer exception,binary subclass,push down method,crash,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=67260,rename method,exception,overloaded methods with similar parameter types,rename method,crash,
+https://youtrack.jetbrains.com/issue/IDEA-82286/Inline-superclass-breaks-code-on-inlining-interface-into-abstract-class,inline method,broken code,interface method,inline interface,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-138745/Replace-method-duplicate-failed-for-constructor,replace method duplicate,incorrect constructor call,constructor,extract parameter,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-82103/Move-Method-breaks-code,move method,invalid code,method in different class,move method,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-140384/Javadoc-link-breaks-on-refactoring,safe delete,broken javadoc link,method parameters,change method signature,comment related,comment related
+https://youtrack.jetbrains.com/issue/IDEA-83723/Intruduce-constant-refactoring-fails-on-specific-string,introduce constant,incorrect replacements,string with square braces,introduce constant,failed refactoring,special string
+https://youtrack.jetbrains.com/issue/IDEA-142867/Refactor-Rename-only-current-method-keeps-Override-annotation,rename method,compile error,@Override annotation,rename method,compile error,annotation
+https://youtrack.jetbrains.com/issue/IDEA-146250/Refactoring-variable-out-of-lambda-expression-places-variable-outside-of-the-lambda,extract variable,incorrect variable placement,lambda expression,extract variable,compile error,lambda
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=566851,extract interface,no change,record,extract interface,compile error,record
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=95135,convert anonymous to nested,null pointer exception,enum,convert anonymous to nested class,crash,enum
+https://youtrack.jetbrains.com/issue/IDEA-97203/Change-constructor-signature-add-Exception-break-code,change constructor signature,break code,exception handling,change method signature,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-109543/Safe-delete-resource-variable-leaves-uncompilable-code,safe delete,uncompilable code,try-with-resources,delete variable,compile error,try-with-resources
+https://youtrack.jetbrains.com/issue/IDEA-340087/Introduce-variable-throws-exception-in-implicit-classes,introduce variable,exception,implicit classes,introduce variable,crash,implicit class
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=88806,change method signature,formatting issue,comment between type and name,change method signature,comment related,comment related
+https://youtrack.jetbrains.com/issue/IDEA-338428/Inline-pattern-variable-doesnt-work-when-its-located-in-nested-condition,inline pattern variable,exception,nested condition,inline variable,crash,nested condition
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=394728,push down,compile error,override method,push down method,compile error,annotation
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=566881,extract method,incorrect refactoring result,pattern instanceof,extract method,compile error,instanceof
+https://youtrack.jetbrains.com/issue/IDEA-97777/Extract-method-on-overloaded-methods-with-objects-in-same-hierarchy,extract method,wrong method replaced,overloaded methods,extract method,compile error,overloaded method
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=546819,change constructor,varargs removal,varargs parameter,change method signature,compile error,varargs
+https://youtrack.jetbrains.com/issue/IDEA-308062/Inline-Super-class-performs-unexpectedly,inline super class,unexpected changes,abstract class,inline class,behavior change,input options
+https://youtrack.jetbrains.com/issue/IDEA-97902/Inline-conditional-expression.-unnecessary-cast-to-boolean,inline variable,unnecessary cast,,inline variable,unnecessary change,java ternary conditional
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=69450,extract local variable,refactoring not available,whitespace in selection,Extract local variable,failed refactoring,
+https://youtrack.jetbrains.com/issue/IDEA-141562/Extract-method-does-not-generate-required-parameter,extract method,missing required parameter,,extract method,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=29391,move member type,compile error,constant,pull up field,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=566866,change method signature,unresolved type error,record,change method signature,incorrect warning message,record
+https://youtrack.jetbrains.com/issue/IDEA-81323/Move-method-in-the-class-with-same-name-method,move method,visibility not escalated,same name method,move method,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=573624,rename method,compilation failure,record,rename method,compile error,record
+https://youtrack.jetbrains.com/issue/IDEA-97682/Extract-constant-fails-for-Strings-which-contain-XPath-expressions,extract constant,refactoring not available,XPath expression,extract constant,crash,special string
+https://youtrack.jetbrains.com/issue/IDEA-103174/JDK-1.8-Type-Annotations-Change-Signature-Refactoring-allows-adding-annotations-shows-them-in-preview-but-doesnt-actually-add,change method signature,annotations not added,type annotations,change method signature,failed refactoring,annotation
+https://youtrack.jetbrains.com/issue/IDEA-125259/Extract-method-removes-generic-casts,extract method,removed generic cast,generic types,extract method,behavior change,java generics
+https://youtrack.jetbrains.com/issue/IDEA-331198/Exception-upon-Extract-method-on-String-template,extract method,exception,string template,extract method,crash,special string
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=84670,change type,failed assignment compatibility check,parameterized type and raw type,generalize type,failed refactoring,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=118063,move method,compile error,different packages,move method,compile error,
+https://youtrack.jetbrains.com/issue/IDEA-127819/Refactoring-Parameterized-anonymous-to-Inner-class-gets-same-name-as-outer-class,convert anonymous class to inner class,duplicate class error,parameterized class,parameterize anonymous to inner class,compile error,anonymous class
+https://youtrack.jetbrains.com/issue/IDEA-332489/Inlining-refactoring-operation-leads-to-naming-conflicts,inline method,naming conflict,inner class,inline method,compile error,inner class
+https://youtrack.jetbrains.com/issue/IDEA-79743/Extract-method-produces-redundant-cast,extract method,redundant cast,primitive type,extract method,unnecessary change,type cast
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=97207,infer generic type arguments,null pointer exception,missing type,Infer Type Arguments,crash,java generics
+https://youtrack.jetbrains.com/issue/IDEA-141634/Introduce-variable-may-produce-not-compilable-code,introduce variable,compile error,method overriding,introduce variable,compile error,
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=76241,inline method,internal error,ambiguous method calls,inline method,crash,
+https://youtrack.jetbrains.com/issue/IDEA-81430/Introduce-variable-does-not-insert-this-class-qualifier-in-front-of-field-references,introduce variable,missing class qualifier,static field reference,introduce variable,behavior change,input options
+https://bugs.eclipse.org/bugs/show_bug.cgi?id=48231,extract local variable,incorrect code generation,loop with variable,extract local variable,behavior change,

@@ -1,0 +1,66 @@
+<Example Two Start>
+<Bug Report Content Start>
+Bug 303617 - [extract constant] Refactoring not available on pop-up if selected string is an annotation
+Neale Upstone 2010-02-23 08:53:23 EST
+Build Identifier: 3.5.1
+
+If I select a string that is the value for an annotation, "Extract constant..." is available on the Refactor menu, but not on the Shift-Alt-T quick menu.
+
+This is inconsistent, as it is on that menu for string constants outside of annotations.
+
+Reproducible: Always
+
+Steps to Reproduce:
+1. Select a string constant within  @Annotation("string constant")
+2. Press Shift-Alt-T
+3. Menu item is not available
+Comment 1Raksha Vasisht CLA 2010-06-17 08:52:29 EDT
+Created attachment 172111 [details]
+Patch
+
+Added another case for Annotation declarations in RefactoringAvailabilityTester.isExtractConstantAvailable(final JavaTextSelection selection) which checks for SingleMemberAnnotations. Markus, could you pls check if the fix is Ok?
+Comment 2Markus Keller CLA 2010-06-17 13:49:45 EDT
+You're on the right track, but you also need to allow NormalAnnotations, e.g. for this:
+
+import java.util.ArrayList;
+//@SuppressWarnings("all")
+//@SuppressWarnings({"all", "rawtypes"})
+//@SuppressWarnings(value= "all")
+@SuppressWarnings(value= {"all", "rawtypes"})
+public class Try extends ArrayList {
+}
+
+More changes:
+- resolveInAnnotationDeclaration() should be called resolveInAnnotation(). We don't use the term "annotation declaration". Either it's an annotation, or it's an annotation type (the latter can also be called a. t. declaration).
+- fInAnnotationsRequested and fInAnnotations should be singular
+- Javadoc that talks about "matches the type" should be "is of type", or simply "is an annotation type".
+- "if if" => "if"
+- "any node in its hierarchy" is ambiguous (type hierarchy or containment hierarchy?, are children also part of the hierarchy?). Use "any of its ancestors".
+- since this is a general utility method that can also be used in other situations (e.g. bug 317224), you should allow all 3 kinds of Annotation nodes.
+Comment 3Raksha Vasisht CLA 2010-06-18 03:52:02 EDT
+Created attachment 172190 [details]
+Patch_v2
+
+Added the other 2 annotation types as well and made the other suggested changes. Markus, could you pls check?
+Comment 4Markus Keller CLA 2010-06-18 09:21:11 EDT
+(In reply to comment #3)
+Looks good, but I would replace the check in resolveInAnnotation with "node instanceof Annotation". That's currently equivalent to testing for all 3 kinds, but it's shorter and it continues to work when another subtype of Annotation is added in the future.
+Comment 5Raksha Vasisht CLA 2010-06-18 12:07:51 EDT
+(In reply to comment #4)
+> (In reply to comment #3)
+> Looks good, but I would replace the check in resolveInAnnotation with "node
+> instanceof Annotation". That's currently equivalent to testing for all 3 kinds,
+> but it's shorter and it continues to work when another subtype of Annotation is
+> added in the future.
+
+
+Done. Released the patch with the above change.
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "extract constant",
+  "Symptom": "refactoring not available",
+  "InputProgramCharacteristic": "annotation"
+}
+<Example Two End>

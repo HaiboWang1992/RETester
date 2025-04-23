@@ -1,0 +1,3339 @@
+html_url,title,state,created_at,closed_at,has_input,has_patch,refactoring_type,symptom,input_program_property,root_cause,content_text
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1360,Inline method refactoring leads to changes in refactoring access permissions,closed,2024-04-23 07:52:19+00:00,2024-04-30 16:00:24+00:00,1,1,Inline method,behavior change,nan,ast rewrite issue,"Inline method refactoring leads to changes in refactoring access permissions #1360
+Eclipse version：2023-9
+Repeat the steps：
+
+select “originalMethod() ”
+click “Refactor-inlinemethod”
+
+class OriginalClass {
+private boolean flag = false;
+public synchronized void originalMethod() throws InterruptedException {
+// Some logic here
+flag = true;
+notify();
+}
+public void callerMethod() throws InterruptedException {
+        	originalMethod() ;
+}
+}
+
+
+
+
+
+
+
+
+
+
+refactoring result:
+
+Expected behavior: Before refactoring, inline methods contain access permissions for synchronization modifiers, but are missing after inlining; Synchronized block addition for inline method body code
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1305,BugÃ¯Â¼Å¡Move method depends on the static method of the original class and the static method of the inner class,closed,2024-04-02 03:32:47+00:00,2024-04-16 12:15:27+00:00,1,0,Move method,compile error,nan,nan,"Bug：Move method depends on the static method of the original class and the static method of the inner class #1305
+Refactoring results:
+Duplicate of #1306
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1273,"Cleanup: ""Convert String to TextBlock"" deletes comments",closed,2024-03-20 09:54:40+00:00,2024-03-22 04:17:54+00:00,1,1,Convert String to TextBlock,comment related,nan,ast rewrite issue,"Cleanup: ""Convert String to TextBlock"" deletes comments #1273
+Java TextBlocks can not contain comments
+https://stackoverflow.com/questions/70198251/comments-inside-text-block-in-java-17-is-that-possible
+But they should not be silently deleted.
+Possibilites: completely skip the refactoring for that string or concat several Textblocks with comments.
+Example:
+org.eclipse.jdt.core.tests.model.SearchTests.testSearchPatternCreation37() (which also fails after cleanup)
+I think skipping the refactoring makes sense.  We could in the future add a preference to ignore line comments if they aren't non-NLS markers.
+Bug occurs because code didn't escape the last space before the end quotes.  I will fix shortly and will add check for line comments.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1286,Extract method in switch expression with yield keep yield in extracted method,closed,2024-03-22 14:05:48+00:00,2024-04-03 02:02:24+00:00,1,1,extract method,compile error,"switch, yield",flow analysis issue,"Extract method in switch expression with yield keep yield in extracted method #1286
+Eclipse version: 2024-03
+Hello,
+I have this method with a switch expression.
+    public double amount() {
+      return switch (getMovie().getPriceCode()) {
+        case Movie.REGULAR -> {
+          if (daysRented > 2) {
+            yield regularPenalty();
+          }
+          yield REGULAR_BASE_AMOUNT;
+        }
+        default -> 0; 
+      };
+    }
+
+
+
+
+
+
+
+
+
+When I extract some logic into separate method, the refactoring keep yield as keyword for returning a value. It should be transform to return to keep a compiling state.
+    public double amount() {
+      return switch (getMovie().getPriceCode()) {
+        case Movie.REGULAR -> {
+          regularRental();
+        }
+        default -> 0;
+      };
+    }
+
+    private void regularRental() {
+      if (daysRented > 2) {
+        yield regularPenalty();
+      }
+      yield REGULAR_BASE_AMOUNT;
+    }
+
+
+
+
+
+
+
+
+
+Moreover, but less annoying, if I extract the whole block, the extracted method format is ugly.
+    public double amount() {
+      return switch (getMovie().getPriceCode()) {
+        case Movie.REGULAR -> regularRental();
+        default -> 0;
+      };
+    }
+
+    private void regularRental(){if (daysRented > 2) {
+      yield regularPenalty();
+    }yield REGULAR_BASE_AMOUNT;}
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1083,"""Make Static"" refactoring erroneously changes method call",closed,2024-01-17 13:30:29+00:00,2024-01-18 22:13:13+00:00,1,1,Make method Static,compile error,nan,Incorrect Type Resolving,"""Make Static"" refactoring erroneously changes method call #1083
+The recently introduced ""Make Static"" refactoring (#689) erroneously interprets a method call within an anonymous class inside the refactored method as a call on this and thus changes the method invocation to be performed on the added input parameter of the method. This is (1) semantically incorrect and (2) leads to compile errors if the type of the added parameter does not provide the method.
+Expected Behavior
+The refactoring should only replace call to methods that are actually performed on this.
+To this end, the implementation of InstanceUsageRewriter#isInsideAnonymousClass(...) needs to be corrected.
+How to Reproduce
+The behavior was found when refactoring the following method:
+org.eclipse.jdt.core.tests.compiler.regression.AbstractRegressionTest#findReferences(String)
+It can be reproduced with the following minimal examples:
+Incorrect Call
+When calling a method inside an anonymous class that is provided by the encapsulating class, there will be a wrong method call.
+public class Foo {
+	
+	void toBeRefactored() {
+		new Foo() {
+			void toImplement() {
+				toCall();
+			}
+		};
+	}
+	
+	void toCall() { }
+	
+	void toImplement() { }
+	
+}
+
+
+
+
+
+
+
+
+
+Refactoring toBeRefactored() produces:
+public class Foo {
+	
+	static void toBeRefactored(Foo foo) {
+		new Foo() {
+			void toImplement() {
+				foo.toCall();
+			}
+		};
+	}
+	
+	void toCall() { }
+	
+	void toImplement() { }
+	
+}
+
+
+
+
+
+
+
+
+
+But actually the call to toBeCalled() was made on an instance of the anonymous inner class rather than the outer instance in the toBeRefactored method. So in this case the refactoring should only add the static keyword and nothing else.
+Compile Error
+When calling a method inside an anonymous class that is not provided by the encapsulating class, there will be a compile error (for the same reason), also in case the anonymous class is nested:
+public class Foo {
+	int j = 0;
+	
+	void toBeRefactored() {
+		this.j = 1;
+		new Other() {
+			@Override
+			void toImplement() {
+				new Object() {
+					@Override
+					public boolean equals(Object obj) {
+						toCall();
+						return false;
+					}
+				};
+			}
+		};
+	}
+}
+
+public abstract class Other {
+	abstract void toImplement();
+	void toCall() {
+	}
+}
+
+
+
+
+
+
+
+
+
+Refactoring toBeRefactored() produces:
+public class Foo {
+	int j = 0;
+	
+	void toBeRefactored(Foo foo) {
+		foo.j = 1;
+		new Other() {
+			@Override
+			void toImplement() {
+				new Object() {
+					@Override
+					public boolean equals(Object obj) {
+						foo.toCall();
+						return false;
+					}
+				};
+			}
+		};
+	}
+}
+
+
+
+
+
+
+
+
+
+This contains the same faulty foo.toCall() as in the first example.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1044,"""Make Static"" refactoring adds unnecessary parameter",closed,2024-01-05 08:28:55+00:00,2024-01-16 19:16:27+00:00,1,1,Make method Static,compile error,nan,ast rewrite issue,"""Make Static"" refactoring adds unnecessary parameter #1044
+The recently introduced ""Make Static"" refactoring (#689) adds a parameter for the this object in some cases in which it is not unnecessary because no this reference is used within the method body.
+This is a finding that has been made during verification of the original refactoring contribution: #689 (comment)
+Expected Behavior
+The refactoring should only introduce a parameter for the original this object in case this is actually accessed in the original method body.
+How to Reproduce
+The failure can, for example, be reproduced when applying the refactoring to org.eclipse.jdt.core.tests.compiler.regression.AbstractRegressionTest#getCompilerTestsPluginDirectoryPath().
+The refactoring introduces an unnecessary AbstractRegressionTest parameter.
+Before:
+protected String getCompilerTestsPluginDirectoryPath() {
+	try {
+		URL platformURL = Platform.getBundle(""org.eclipse.jdt.core.tests.compiler"").getEntry(""/"");
+		return new File(FileLocator.toFileURL(platformURL).getFile()).getAbsolutePath();
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+	return null;
+}
+
+
+
+
+
+
+
+
+
+After:
+protected static String getCompilerTestsPluginDirectoryPath(AbstractRegressionTest abstractRegressionTest) {
+	try {
+		URL platformURL = Platform.getBundle(""org.eclipse.jdt.core.tests.compiler"").getEntry(""/"");
+		return new File(FileLocator.toFileURL(platformURL).getFile()).getAbsolutePath();
+	} catch (IOException e) {
+		e.printStackTrace();
+	}
+	return null;
+}
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1045,"""Make Static"" refactoring failing because of overlapping text edits",closed,2024-01-05 08:29:04+00:00,2024-01-17 00:04:03+00:00,1,1,Make method Static,exception,nan,ast rewrite issue,"""Make Static"" refactoring failing because of overlapping text edits #1045
+The recently introduced ""Make Static"" refactoring (#689) fails to be applied because of ""overlapping text edits"" in some cases.
+This is a finding that has been made during verification of the original refactoring contribution: #689 (comment)
+Expected Behavior
+The refactoring should not fail because of producing overlapping text edits.
+How to Reproduce
+The failure can, for example, be reproduced when applying the refactoring to org.eclipse.jdt.internal.codeassist.CompletionEngine#checkCancel()
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1043,"""Make Static"" refactoring adds new parameter documentation as first javdoc entry",closed,2024-01-05 08:26:20+00:00,2024-01-18 21:51:56+00:00,1,1,Make method Static,comment related,nan,ast rewrite issue,"""Make Static"" refactoring adds new parameter documentation as first javdoc entry #1043
+The recently introduced ""Make Static"" refactoring (#689) adds the documentation of a new parameter for the this object at the beginning of the javadoc comment, although this is usually not the expected position of a parameter documentation.
+This is a finding that has been made during verification of the original refactoring contribution: #689 (comment)
+Expected Behavior
+The refactoring should add the parameter documentation in javadoc at a ""reasonable"" position, such as between the general documentation and potentially existing other parameter and return value documentations.
+I propose to reuse the behavior already implemented for the ""Change Method Signature"" refactoring, as it already places the documentation for added parameters at reasonable positions.
+How to Reproduce
+The behavior can be reproduced when refactoring any method with an existing javadoc comment.
+The results when applying it to
+org.eclipse.jdt.core.tests.compiler.regression.AbstractRegressionTest#getCompilerTestsPluginDirectoryPath() with some extended documentation look as follows.
+Before:
+/**
+* Returns the OS path to the directory that contains this plugin.
+*
+* @return OS path of the plugin directory
+* @author unknown
+*/
+
+
+
+
+
+
+
+
+
+After:
+/**
+* @param abstractRegressionTest
+* Returns the OS path to the directory that contains this plugin.
+*
+* @return OS path of the plugin directory
+* @author unknown
+*/
+
+
+
+
+
+
+
+
+
+Result when a adding parameter with ""Change Method Signature"" refactoring:
+/**
+* Returns the OS path to the directory that contains this plugin.
+* @param newParameter TODO
+*
+* @return OS path of the plugin directory
+* @author unknown
+*/
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1111,Convert to text block save action formatting is strange,closed,2024-01-19 16:02:08+00:00,2024-01-22 22:40:35+00:00,1,1,Convert to text block,unnecessary change,nan,ast rewrite issue,"Convert to text block save action formatting is strange #1111
+The save action ""Convert String concatenation to Text Block"" under the Java Feature tab results in strange formatting. As an example, if you start with the following:
+var s = ""a "" +
+    ""b "" +
+    ""c"";
+
+
+
+
+
+
+
+
+
+you end up with this:
+var s3 = """"""
+	a\s\
+	b\s\
+	c"""""";
+
+
+
+
+
+
+
+
+
+While the end result is correct, there are a couple things that could be improved:
+
+The \s is unnecessary and should just be a literal space
+Tabs are inserted even when using spaces for indentation
+
+I would expect the refactoring to look more like this when using spaces for indentation:
+var s2 = """"""
+    a \
+    b \
+    c"""""";
+
+
+
+
+
+
+
+
+
+In all cases, the output should be the single line
+a b c
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/963,Cleanup: Convert to enhanced 'for' loops creates not compilable code,closed,2023-12-04 08:27:03+00:00,2024-02-05 15:51:15+00:00,1,1,Convert to enhanced 'for' loops,compile error,nan,ast rewrite issue,"Cleanup: Convert to enhanced 'for' loops creates not compilable code #963
+Iterable<? extends File> files= null;			
+		int count = 0;
+		for (Iterator<? extends File> iterator = files.iterator(); iterator.hasNext(); ) {
+			iterator.next();
+			count++;
+		}
+source from org.eclipse.jdt.ui.tests.refactoring.infra.DebugUtils.dumpIMethodList(String, List<?>)
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1023,ExtractConstantRefactoring cannot handle a StringLiteral when not in type declaration,closed,2023-12-19 13:48:57+00:00,2024-01-08 20:58:45+00:00,1,1,Extract Constant,exception,nan,overly weak preconditions,"ExtractConstantRefactoring cannot handle a StringLiteral when not in type declaration #1023
+Code:
+@org.osgi.annotation.versioning.Version(""5.0.0"")
+package foobar;
+
+
+
+
+
+
+
+
+
+
+Place the cursor in the string ""5.0.0"", press control-1. This will throw an exception in the ExtractConstantRefactoring.
+This throws an assertion in getContainingTypeDeclarationNode(...) because there is not type declaration in this case. The parents of the String are:
+StringLiteral  ""5.0.0""
+SingleMemberAnnotation
+PackageDeclaration
+CompilationUnit
+
+
+
+
+
+
+
+
+
+
+Proposed changes:
+
+	private boolean isInTypeDeclarationAnnotation(ASTNode node) throws JavaModelException {
+		Annotation enclosingAnnotation= ASTNodes.getParent(node, Annotation.class);
+		return enclosingAnnotation != null && enclosingAnnotation.getParent() == getContainingTypeDeclarationNode();
+	}
+
+>>>>>>
+
+	private boolean isInTypeDeclarationAnnotation(ASTNode node) throws JavaModelException {
+		Annotation enclosingAnnotation= ASTNodes.getParent(node, Annotation.class);
+		AbstractTypeDeclaration result= ASTNodes.getParent(getSelectedExpression().getAssociatedNode(), AbstractTypeDeclaration.class);
+		return enclosingAnnotation != null && enclosingAnnotation.getParent() == result;
+	}
+
+
+
+
+
+
+
+
+
+
+org.eclipse.core.runtime.AssertionFailedException: null argument:
+	at org.eclipse.core.runtime.Assert.isNotNull(Assert.java:88)
+	at org.eclipse.core.runtime.Assert.isNotNull(Assert.java:76)
+	at org.eclipse.jdt.internal.corext.refactoring.code.ExtractConstantRefactoring.getContainingTypeDeclarationNode(ExtractConstantRefactoring.java:837)
+	at org.eclipse.jdt.internal.corext.refactoring.code.ExtractConstantRefactoring.isInTypeDeclarationAnnotation(ExtractConstantRefactoring.java:627)
+	at org.eclipse.jdt.internal.corext.refactoring.code.ExtractConstantRefactoring.checkInitialConditions(ExtractConstantRefactoring.java:298)
+	at org.eclipse.jdt.internal.ui.text.correction.QuickAssistProcessor.getExtractVariableProposal(QuickAssistProcessor.java:583)
+	at org.eclipse.jdt.internal.ui.text.correction.QuickAssistProcessor.getAssists(QuickAssistProcessor.java:381)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor$SafeAssistCollector.safeRun(JavaCorrectionProcessor.java:404)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor$SafeCorrectionProcessorAccess.run(JavaCorrectionProcessor.java:341)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:45)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor$SafeCorrectionProcessorAccess.process(JavaCorrectionProcessor.java:330)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor.collectAssists(JavaCorrectionProcessor.java:506)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor.collectProposals(JavaCorrectionProcessor.java:291)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionProcessor.computeQuickAssistProposals(JavaCorrectionProcessor.java:247)
+	at org.eclipse.jface.text.quickassist.QuickAssistAssistant$ContentAssistProcessor.computeCompletionProposals(QuickAssistAssistant.java:71)
+	at org.eclipse.jface.text.contentassist.ContentAssistant$2.lambda$0(ContentAssistant.java:2063)
+	at java.base/java.util.Collections$SingletonSet.forEach(Collections.java:4905)
+	at org.eclipse.jface.text.contentassist.ContentAssistant$2.run(ContentAssistant.java:2062)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:45)
+	at org.eclipse.jface.text.contentassist.ContentAssistant.computeCompletionProposals(ContentAssistant.java:2059)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.computeProposals(CompletionProposalPopup.java:577)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.lambda$0(CompletionProposalPopup.java:507)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.showProposals(CompletionProposalPopup.java:502)
+	at org.eclipse.jface.text.contentassist.ContentAssistant.showPossibleCompletions(ContentAssistant.java:1873)
+	at org.eclipse.jface.text.quickassist.QuickAssistAssistant.showPossibleQuickAssists(QuickAssistAssistant.java:113)
+	at org.eclipse.jdt.internal.ui.text.correction.JavaCorrectionAssistant.showPossibleQuickAssists(JavaCorrectionAssistant.java:194)
+Hi @pkriens Thanks for the report and suggested fix.  Unfortunately with the suggested fix, it still fails as there are other calls to the getContainingTypeDeclaration() call that will occur after.  I modified the code to add a check in checkInitialConditions() and to set the status code if no type is found.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1136,"Quickfix ""Extract to local Variable"": sometimes creates ""MISSING()""",closed,2024-01-26 13:00:56+00:00,2024-02-07 20:50:19+00:00,1,1,Extract to local Variable,compile error,nan,ast rewrite issue,"Quickfix ""Extract to local Variable"": sometimes creates ""MISSING()"" #1136
+i have seen such behavior multiple times in the last weeks.
+here is a reproducer:
+in org.eclipse.jdt.internal.core.JavaElement.hashCode() extract the value:
+
+
+sometimes also paired with BadLocationException ( but i am more concerend about the wrong source code generated):
+org.eclipse.jface.text.BadLocationException
+	at org.eclipse.jface.text.link.LinkedPositionGroup.enforceDisjoint(LinkedPositionGroup.java:162)
+	at org.eclipse.jface.text.link.LinkedPositionGroup.addPosition(LinkedPositionGroup.java:127)
+	at org.eclipse.jdt.internal.ui.viewsupport.LinkedProposalModelPresenter.enterLinkedMode(LinkedProposalModelPresenter.java:100)
+	at org.eclipse.jdt.internal.ui.text.correction.proposals.LinkedCorrectionProposal.performChange(LinkedCorrectionProposal.java:186)
+	at org.eclipse.jdt.ui.text.java.correction.CUCorrectionProposal.apply(CUCorrectionProposal.java:230)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.insertProposal(CompletionProposalPopup.java:1004)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.insertSelectedProposalWithMask(CompletionProposalPopup.java:951)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.verifyKey(CompletionProposalPopup.java:1395)
+	at org.eclipse.jface.text.contentassist.ContentAssistant$InternalListener.verifyKey(ContentAssistant.java:829)
+	at org.eclipse.jface.text.TextViewer$VerifyKeyListenersManager.verifyKey(TextViewer.java:480)
+	at org.eclipse.swt.custom.StyledTextListener.handleEvent(StyledTextListener.java:68)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4273)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1090)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1075)
+	at org.eclipse.swt.widgets.Widget.notifyListeners(Widget.java:778)
+	at org.eclipse.swt.custom.StyledText.handleKeyDown(StyledText.java:5742)
+	at org.eclipse.swt.custom.StyledText.lambda$28(StyledText.java:5426)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4273)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1090)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1075)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1117)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1113)
+	at org.eclipse.swt.widgets.Widget.wmChar(Widget.java:1594)
+	at org.eclipse.swt.widgets.Control.WM_CHAR(Control.java:4866)
+	at org.eclipse.swt.widgets.Canvas.WM_CHAR(Canvas.java:345)
+	at org.eclipse.swt.widgets.Control.windowProc(Control.java:4744)
+	at org.eclipse.swt.widgets.Canvas.windowProc(Canvas.java:340)
+	at org.eclipse.swt.widgets.Display.windowProc(Display.java:5039)
+	at org.eclipse.swt.internal.win32.OS.DispatchMessage(Native Method)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3657)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1151)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:339)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1042)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:152)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:648)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:339)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:555)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:173)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:208)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:143)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:109)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:439)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:271)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:651)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:588)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1459)
+
+
+
+
+
+
+
+
+
+
+the source code generated also varies. I tried ""rebuild index"" and do it again while indexing resulted in  (UI freeze and) another order:
+
+Then i tried it again - sucess:
+
+tried it again - error again (indexing did not help!):
+
+that hurts
+eclipse.buildId=4.31.0.I20240124-1800
+java.version=21.0.2
+I'll look at it.
+I noticed that as well but as described it sometimes works and sometimes not even for the same code....
+Here is even a video:
+#988
+Another variant where literally nothing is inserted instead (reproducible eclipse.buildId=4.31.0.I20240130-1800):
+
+=>
+
+with another exception logged:
+java.lang.IllegalStateException: must specify at least one linked position
+	at org.eclipse.jface.text.link.LinkedModeModel.enforceNotEmpty(LinkedModeModel.java:530)
+	at org.eclipse.jface.text.link.LinkedModeModel.install(LinkedModeModel.java:484)
+	at org.eclipse.jface.text.link.LinkedModeModel.forceInstall(LinkedModeModel.java:441)
+	at org.eclipse.jdt.internal.ui.viewsupport.LinkedProposalModelPresenter.enterLinkedMode(LinkedProposalModelPresenter.java:109)
+	at org.eclipse.jdt.internal.ui.text.correction.proposals.LinkedCorrectionProposal.performChange(LinkedCorrectionProposal.java:191)
+	at org.eclipse.jdt.ui.text.java.correction.CUCorrectionProposal.apply(CUCorrectionProposal.java:228)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.insertProposal(CompletionProposalPopup.java:1004)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup.insertSelectedProposalWithMask(CompletionProposalPopup.java:951)
+	at org.eclipse.jface.text.contentassist.CompletionProposalPopup$3.widgetDefaultSelected(CompletionProposalPopup.java:697)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:123)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4273)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:4071)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3659)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1151)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:339)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1042)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:152)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:645)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:339)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:552)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:173)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:208)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:143)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:109)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:439)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:271)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:651)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:588)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1459)
+My research so far is frustrating.  The problem does not occur when I debug and appears to be a timing issue.  I can recreate in an I-build and via remote debugging I can catch the BadLocation being thrown.   The error is occurring adding the linked positions for the additional names that are offered for the new variable declaration (in LinkedProposalModelPresenter.enterLinkedMode()).
+I believe this is fixed now.   I tested with I20240203 and was unable to create the problem.  Although the hashCode() method has changed from the original example, I restored it back to the original code for the test.  The error occurred for me when hitting enter quickly before the preview was calculated for the extract to local variable (replace all) or extract to local variable for the given method call.  If the clicking is delayed or the code debugged with breakpoints, the error did not occur.  There appears to be a significant time in calculating the extract to local variable (replace all) and this assist should have its relevance lowered below the single extract (in one instance I got a UI delay registered, but the assist worked successfully).  I am going to mark this closed and if a new example causes the BadLocationException, I suggest a new issue with a new scenario.  Fixed by #1162
+With I20240204 i can still reproduce
+#1136 (comment)
+Either reopen this or duplicate that comment to new issue?
+@jukzi I can reproduce.  I think this is a separate issue with the code not prepared to handle a conditional statement.  I will investigate.
+@jukzi This is definitely a separate issue.  The ExtractTempRefactoring code will sometimes not be done because the expression should not be moved before the statement it is in.  For example, when you have a conditional, the method call in the false path moved before the conditional might change the result of the condition test.  The refactoring is figuring this out in final conditions.  The QuickAssistProcessor is only checking the initial conditions and creating a proposal that wraps the refactoring.  There needs to be a check so that the proposal is not offered to the end-user.  I have a patch for this but need to add the same logic for extract constant which also wraps a refactoring.
+See #1176
+Closing this with #1177 merged.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/950,NPE in Convert String contenation to Text Block,closed,2023-11-30 16:15:12+00:00,2023-12-06 01:24:51+00:00,1,1,Convert String contenation to Text Block ,exception,nan,ast rewrite issue,"NPE in Convert String contenation to Text Block #950
+Example:
+Import jdt.core and run the Convert String contenation to Text Block clean-up on org.eclipse.jdt.core
+
+Strack trace:
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:397)
+	at org.eclipse.jface.wizard.WizardDialog.run(WizardDialog.java:1038)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:662)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:504)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:77)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:113)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpRefactoringWizard$CleanUpConfigurationPage.getNextPage(CleanUpRefactoringWizard.java:437)
+	at org.eclipse.jface.wizard.WizardDialog.nextPressed(WizardDialog.java:915)
+	at org.eclipse.jface.wizard.WizardDialog.buttonPressed(WizardDialog.java:469)
+	at org.eclipse.jface.dialogs.Dialog.lambda$0(Dialog.java:619)
+	at org.eclipse.swt.events.SelectionListener$1.widgetSelected(SelectionListener.java:84)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:252)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5854)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5064)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4516)
+	at org.eclipse.jface.window.Window.runEventLoop(Window.java:823)
+	at org.eclipse.jface.window.Window.open(Window.java:799)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:190)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:67)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startCleanupRefactoring(RefactoringExecutionStarter.java:257)
+	at org.eclipse.jdt.internal.ui.actions.AllCleanUpsAction.performRefactoring(AllCleanUpsAction.java:71)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.runOnMultiple(CleanUpAction.java:215)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:119)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:274)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5854)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5064)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4516)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:645)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:552)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:173)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:208)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:651)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:588)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1459)
+	at org.eclipse.equinox.launcher.Main.main(Main.java:1432)
+Caused by: java.lang.NullPointerException: Cannot invoke ""org.eclipse.jdt.core.dom.SimpleName.resolveBinding()"" because ""this.originalVarName"" is null
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore$StringBufferFinder.visit(StringConcatToTextBlockFixCore.java:551)
+	at org.eclipse.jdt.core.dom.ClassInstanceCreation.accept0(ClassInstanceCreation.java:293)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3317)
+	at org.eclipse.jdt.core.dom.MethodInvocation.accept0(MethodInvocation.java:223)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3317)
+	at org.eclipse.jdt.core.dom.MethodInvocation.accept0(MethodInvocation.java:223)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3340)
+	at org.eclipse.jdt.core.dom.MethodInvocation.accept0(MethodInvocation.java:228)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3317)
+	at org.eclipse.jdt.core.dom.ExpressionStatement.accept0(ExpressionStatement.java:136)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3340)
+	at org.eclipse.jdt.core.dom.Block.accept0(Block.java:128)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3317)
+	at org.eclipse.jdt.core.dom.IfStatement.accept0(IfStatement.java:183)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3340)
+	at org.eclipse.jdt.core.dom.Block.accept0(Block.java:128)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3317)
+	at org.eclipse.jdt.core.dom.MethodDeclaration.accept0(MethodDeclaration.java:677)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3340)
+	at org.eclipse.jdt.core.dom.TypeDeclaration.accept0(TypeDeclaration.java:498)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3340)
+	at org.eclipse.jdt.core.dom.CompilationUnit.accept0(CompilationUnit.java:258)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3269)
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore.createCleanUp(StringConcatToTextBlockFixCore.java:802)
+	at org.eclipse.jdt.internal.ui.fix.StringConcatToTextBlockCleanUpCore.createFixCore(StringConcatToTextBlockCleanUpCore.java:54)
+	at org.eclipse.jdt.internal.ui.fix.AbstractCleanUpCoreWrapper.createFix(AbstractCleanUpCoreWrapper.java:53)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:772)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:91)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2453)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2478)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/906,Externalize Strings does not supporting Java text-blocks,closed,2023-11-07 07:25:52+00:00,2023-11-28 22:22:07+00:00,1,1,Externalize Strings,unnecessary change,nan,ast rewrite issue,"Externalize Strings does not supporting Java text-blocks #906
+Given this string literal:
+return """"""
+    some content
+    """""";
+
+
+
+
+
+
+
+
+
+
+If I use the dialog to add a Java text block as externalized string, it puts the string literal including 2 double-quotes at the beginning and end, all the indentation of the literal, the \r\n from the source file.
+Instead I expect that it only puts in the real string content only.
+Generated value:
+mykey=""""\r\n    some content\r\n    """"
+
+
+
+
+
+
+
+
+
+
+I expect the value to be:
+mykey=some content\n
+
+
+
+
+
+
+
+
+
+
+I searched in the code and found that the implementation
+org.eclipse.jdt.internal.corext.refactoring.nls.NLSHint.stripQuotes(String)
+is not good enough for text block.
+Like removing the quotes, removing the indentation, stripping trailing spaces, handling backslash in last character of line ...
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1008,Quickfix Converting to Enhanced For Loop Creates Invalid Code,closed,2023-12-13 13:27:36+00:00,2023-12-13 19:24:53+00:00,1,1,Converting to Enhanced For Loop,compile error,nan,ast rewrite issue,"Quickfix Converting to Enhanced For Loop Creates Invalid Code #1008
+Current Behavior
+JDT provides a quickfix for converting classic for loops into enhanced for loops. When using a classic for loop to iterate through the elements of an iterator calling next() within the loop body but not using its result (such as when only counting the elements), applying the quickfix for converting into an enhanced for loop leads to syntactically incorrect code.
+Example
+Original code:
+List<Object> list = new ArrayList<>();
+int i = 0;
+for (Iterator<Object> iterator = list.iterator(); iterator.hasNext();) {
+	iterator.next();
+	i++;
+}
+
+
+
+
+
+
+
+
+
+After applying the quickfix:
+List<Object> list = new ArrayList<>();
+int i = 0;
+for (Object object : list) {
+	object;
+	i++;
+}
+
+
+
+
+
+
+
+
+
+object; is an invalid statement.
+Reproduction Environment
+Happens with Eclipse 2023-09 and JDK 17.
+Expected Behavior
+The quick fix should always produce syntactically (and semantically) correct code. For the given example, the quick fix should either not be provided or the result should look as follows:
+List<Object> list = new ArrayList<>();
+int i = 0;
+for (Object object : list) {
+	i++;
+}
+
+
+
+
+
+
+
+
+
+Additional Information
+The invalid result only occurs when performing the next() call within the loop body. When performing it within the loop header, the refactoring result is correct, e.g.:
+Original code:
+List<Object> list = new ArrayList<>();
+int i = 0;
+for (Iterator<Object> iterator = list.iterator(); iterator.hasNext(); iterator.next()) {
+	i++;
+}
+
+
+
+
+
+
+
+
+
+After applying the quickfix:
+List<Object> list = new ArrayList<>();
+int i = 0;
+for (Object object : list) {
+	i++;
+}
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/769,"Refactoring issue ""Add final modifier to private fields"" on lambdas",closed,2023-09-11 14:41:27+00:00,2023-10-11 20:35:33+00:00,1,1,Add final modifier to private fields,compile error,nan,overly weak preconditions,"Refactoring issue ""Add final modifier to private fields"" on lambdas #769
+""Add final modifier to private fields"" on org.eclipse.core.internal.databinding.observable.MapEntryObservableValue leads to compile error The blank final field key may not have been initialized.
+Automated refactoring should not lead into compile time error
+another example:  org.eclipse.jface.viewers.deferred.ConcurrentTableUpdator.uiRunnable - always lambdas involved.
+@jjohnstn  still happens with 	org.eclipse.jdt.ui 3.31.0.v20230926-0702
+on org.eclipse.core.internal.databinding.observable.MapEntryObservableValue
+another example:
+org.eclipse.jdt.internal.ui.dialogs.TypeInfoViewer
+@jukzi The TypeInfoViewer failure had to do with a constructor using a lambda and writing to the field in question after the lambda references the field.  If you find another scenario, please open a separate issue.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/592,Refactor renames random java elements,closed,2022-08-30 17:30:30+00:00,2023-05-25 07:28:18+00:00,1,1,rename method,fail to refactoring,nan,Incorrect Type Resolving,"Refactor renames random java elements #592
+Very nasty regression (random results - but reproducible):
+ALT+SHIFT+R on a method sometimes also selects and refactors code that has nothing todo with it.
+Example:
+
+I wanted to refactor the name of ""waitFor"" but in the same turn it refactored ""lockAcquiringRunnable""
+
+When i slightly change the code then either problem is gone or other elements are refactored:
+
+You can download the the example from https://github.com/jukzi/eclipse.platform/commits/refactorBug
+git clone git@github.com:jukzi/eclipse.platform.git
+git checkout refactorBug
+
+
+
+
+
+
+
+
+
+
+
+Then import the project eclipse.platform\runtime\tests\org.eclipse.core.tests.runtime to your workspace.
+It will have many compilation errors if you do not have the dependencies but that does not affect the bug.
+Sorry, that i could not find a smaller example .. as soon as i reduce it i can't reproduce.
+Feels like there is a comparison of a colliding hash instead of checking for equals.
+@jjohnstn this is a regression from c8ab355#diff-b1a1111fa629b3734055f042bc05d0f31f670107db239bdabb47863a290e5cfdR290
+The iMethod.getNameRange() may belong to another root CompilationUnit then the current file.
+For the example given in #592  the iMethod.getNameRange() returns the range for the Method ""waitFor"" in the File ""RandomOrder.java"" while the root is the ""OrderedLockTest2.java"" currently edited. Searching the ASTNode for a range that meant to be in annother file then finds a wrong hit in the current file. (https://github.com/eclipse-jdt/eclipse.jdt.ui/blob/master/org.eclipse.jdt.ui/ui%20refactoring/org/eclipse/jdt/internal/ui/refactoring/reorg/RenameLinkedMode.java#L285)
+please move this issue to jdt.ui
+@jukzi I tested the patch with your example and if works fine and I also verified the old tests continue to work.  Do you want to try it out as well?  @iloveeclipse Can this go into RC1 or RC2?
+Can this go into RC1 or RC2?
+
+The patch seem simple. Is there anyone else who knows the code and can review it?
+Is a regression test easily doable?
+@iloveeclipse I'm hoping @jukzi can review it as he located the source of the issue.  A test is difficult because it is a fluke that we are able to find a method name range in another file that is also a name position in the current file.  I could give it a try if @jukzi hasn't already.
+i'll test tomorrow, source looks good to me.
+@iloveeclipse I was able to make the following test.  If you rename the waitFor() call in B without the patch, it will try and change the loop variable name as well.  With the patch, it works.  Didn't quite know how to fit this into existing rename tests which only have one file supported.
+testrename.zip
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/578,BugÃ 241035 - [pull up] refactoring causes compile error because it replaces wrong destination type,closed,2023-05-15 14:42:00+00:00,2023-06-09 18:02:14+00:00,1,1,pull up method,compile error,nan,ast rewrite issue,"Bug 241035 - [pull up] refactoring causes compile error because it replaces wrong destination type #578
+Steps To Reproduce:
+
+In the following code
+A.java
+
+package p;
+
+class A {
+	void a(A a){}
+	void a(B b){}
+}
+
+
+
+
+
+
+
+
+
+
+B.java
+package p;
+
+class B extends A {
+	void m() { 
+		a(this);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+pull up B.m() to class A
+the above code becomes
+A.java
+
+package p;
+
+class A {
+	void a(A a){}
+	void a(A b){}
+	void m() { 
+		a(this);
+	}
+}
+
+
+
+
+
+
+
+
+
+
+B.java
+package p;
+
+class B extends A {
+}
+
+
+
+
+
+
+
+
+
+
+
+Compile error is detected
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/446,Refactor boxable value to conditional introduces unexpected side effect,closed,2023-03-01 08:23:47+00:00,2023-03-10 00:12:18+00:00,1,1,refactoring to conditional,behavior change,nan,overly weak preconditions,"Refactor boxable value to conditional introduces unexpected side effect #446
+Given the following program:
+public static void main(String[] args) {
+  Object s = ""Hi"";
+
+  Number number;
+  if(s instanceof String) {
+    number = Long.parseLong(""1"");
+  }
+  else {
+    number = Double.parseDouble(""1"");
+  }
+
+  System.out.println(number);
+}
+
+
+
+
+
+
+
+
+
+
+This prints:
+class java.lang.Long = 1
+
+
+
+
+
+
+
+
+
+
+When applying the refactoring to conditional the program becomes:
+public static void main(String[] args) {
+  Object s = ""Hi"";
+
+  Number number;
+  number = s instanceof String ? Long.parseLong(""1"") : Double.parseDouble(""1"");
+
+  System.out.println(number.getClass() + "" = "" + number);
+}
+
+
+
+
+
+
+
+
+
+
+This prints:
+class java.lang.Double = 1.0
+
+
+
+
+
+
+
+
+
+
+Expected
+I would expect this refactoring to not be available when it changes the results.
+Cause
+The refactoring doesn't take into account that unboxed values can be implicitly cast (long to double in this case).  The conditional s instanceof String ? 1 : 1.0  is always a double, and after boxing would always be Double instead of Long or Double.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/824,"Save action ""Convert String concatenation to Text Block"" fails for multi-line string in annotation if followed by a comment.",closed,2023-09-25 09:17:36+00:00,2023-09-26 02:18:51+00:00,1,1,Convert String concatenation to Text Block,exception,nan,Incorrect Type Resolving,"Save action ""Convert String concatenation to Text Block"" fails for multi-line string in annotation if followed by a comment. #824
+Reproduced with Eclipse versions 2023-06 and 2023-09 (both running on Adoptium Temurin JDK 17.0.8.1, project compiled with same JDK).
+Save actions config:
+
+Example class for reproducing the problem:
+package test;
+
+import jakarta.persistence.NamedNativeQueries;
+import jakarta.persistence.NamedNativeQuery;
+
+@NamedNativeQueries({
+ @NamedNativeQuery(name = ""testQuery"",
+ query = ""select * "" +
+ ""from test_entities "" +
+ ""where test = :test"" ) // comment1
+ })
+public class TestEntity {
+    public static void main(String[] args) {
+        final String foo =
+            (""Line1""+
+            ""Line2""+
+            ""Line3""+
+            ""Line4"");//comment2
+    }
+}
+
+
+
+
+
+
+
+
+
+
+Resulting problem when save is performed:
+
+Any of the following changes causes the problem to disappear:
+
+Disabling ""Convert String concatenation to Text Block"" save action
+Removing the comment after the annotation (""comment1"")
+Moving ""comment1"" comment to next line
+Removing/commenting-out the annotations
+
+Note that ""similar"" string in method body (even with surrounding parens) does not cause the problem (conversion to text block works as expected).
+@jezovuk : can you please attach workspace log with the exception stack trace as text?
+There are two errors in log:
+
+Problems occurred when invoking code from plug-in: ""org.eclipse.jdt.ui"".
+
+Trace:
+java.lang.NullPointerException: Cannot invoke ""org.eclipse.jdt.internal.corext.refactoring.nls.NLSLine.getElements()"" because ""nlsLine"" is null
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore$StringConcatFinder.visit(StringConcatToTextBlockFixCore.java:188)
+	at org.eclipse.jdt.core.dom.InfixExpression.accept0(InfixExpression.java:353)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3302)
+	at org.eclipse.jdt.core.dom.MemberValuePair.accept0(MemberValuePair.java:157)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.NormalAnnotation.accept0(NormalAnnotation.java:153)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.ArrayInitializer.accept0(ArrayInitializer.java:124)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3302)
+	at org.eclipse.jdt.core.dom.SingleMemberAnnotation.accept0(SingleMemberAnnotation.java:155)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.TypeDeclaration.accept0(TypeDeclaration.java:494)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.CompilationUnit.accept0(CompilationUnit.java:258)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore.createCleanUp(StringConcatToTextBlockFixCore.java:790)
+	at org.eclipse.jdt.internal.ui.fix.StringConcatToTextBlockCleanUpCore.createFixCore(StringConcatToTextBlockCleanUpCore.java:54)
+	at org.eclipse.jdt.internal.ui.fix.AbstractCleanUpCoreWrapper.createFix(AbstractCleanUpCoreWrapper.java:53)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:768)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpPostSaveListener.saved(CleanUpPostSaveListener.java:384)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider$4.run(CompilationUnitDocumentProvider.java:1618)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:45)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider.notifyPostSaveListeners(CompilationUnitDocumentProvider.java:1612)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider.commitWorkingCopy(CompilationUnitDocumentProvider.java:1396)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider$3.execute(CompilationUnitDocumentProvider.java:1471)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider$DocumentProviderOperation.run(TextFileDocumentProvider.java:133)
+	at org.eclipse.ui.actions.WorkspaceModifyDelegatingOperation.execute(WorkspaceModifyDelegatingOperation.java:71)
+	at org.eclipse.ui.actions.WorkspaceModifyOperation.lambda$0(WorkspaceModifyOperation.java:110)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2453)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2478)
+	at org.eclipse.ui.actions.WorkspaceModifyOperation.run(WorkspaceModifyOperation.java:131)
+	at org.eclipse.ui.internal.editors.text.WorkspaceOperationRunner.run(WorkspaceOperationRunner.java:76)
+	at org.eclipse.ui.internal.editors.text.WorkspaceOperationRunner.run(WorkspaceOperationRunner.java:66)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider.executeOperation(TextFileDocumentProvider.java:461)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider.saveDocument(TextFileDocumentProvider.java:764)
+	at org.eclipse.ui.texteditor.AbstractTextEditor.performSave(AbstractTextEditor.java:5009)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditor.performSave(CompilationUnitEditor.java:1267)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditor.doSave(CompilationUnitEditor.java:1321)
+	at org.eclipse.ui.texteditor.AbstractTextEditor$TextEditorSavable.doSave(AbstractTextEditor.java:7185)
+	at org.eclipse.ui.Saveable.doSave(Saveable.java:213)
+	at org.eclipse.ui.internal.SaveableHelper.doSaveModel(SaveableHelper.java:333)
+	at org.eclipse.ui.internal.SaveableHelper.lambda$1(SaveableHelper.java:196)
+	at org.eclipse.ui.internal.SaveableHelper.lambda$3(SaveableHelper.java:271)
+	at org.eclipse.jface.operation.ModalContext.runInCurrentThread(ModalContext.java:434)
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:352)
+	at org.eclipse.ui.internal.WorkbenchWindow.lambda$7(WorkbenchWindow.java:2346)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:67)
+	at org.eclipse.ui.internal.WorkbenchWindow.run(WorkbenchWindow.java:2344)
+	at org.eclipse.ui.internal.SaveableHelper.runProgressMonitorOperation(SaveableHelper.java:278)
+	at org.eclipse.ui.internal.SaveableHelper.runProgressMonitorOperation(SaveableHelper.java:260)
+	at org.eclipse.ui.internal.SaveableHelper.saveModels(SaveableHelper.java:207)
+	at org.eclipse.ui.internal.SaveableHelper.savePart(SaveableHelper.java:150)
+	at org.eclipse.ui.internal.WorkbenchPage.saveSaveable(WorkbenchPage.java:3825)
+	at org.eclipse.ui.internal.WorkbenchPage.saveEditor(WorkbenchPage.java:3838)
+	at org.eclipse.ui.internal.handlers.SaveHandler.execute(SaveHandler.java:82)
+	at org.eclipse.ui.internal.handlers.HandlerProxy.execute(HandlerProxy.java:283)
+	at org.eclipse.ui.internal.handlers.E4HandlerProxy.execute(E4HandlerProxy.java:97)
+	at jdk.internal.reflect.GeneratedMethodAccessor63.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.e4.core.internal.di.MethodRequestor.execute(MethodRequestor.java:58)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invokeUsingClass(InjectorImpl.java:300)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invoke(InjectorImpl.java:234)
+	at org.eclipse.e4.core.contexts.ContextInjectionFactory.invoke(ContextInjectionFactory.java:173)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceHandler.execute(HandlerServiceHandler.java:156)
+	at org.eclipse.core.commands.Command.executeWithChecks(Command.java:488)
+	at org.eclipse.core.commands.ParameterizedCommand.executeWithChecks(ParameterizedCommand.java:485)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceImpl.executeHandler(HandlerServiceImpl.java:213)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.executeCommand(KeyBindingDispatcher.java:308)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.press(KeyBindingDispatcher.java:580)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.processKeyEvent(KeyBindingDispatcher.java:655)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.filterKeySequenceBindings(KeyBindingDispatcher.java:439)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher$KeyDownFilter.handleEvent(KeyBindingDispatcher.java:96)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.filterEvent(Display.java:1286)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1065)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1090)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1075)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1117)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1113)
+	at org.eclipse.swt.widgets.Widget.wmChar(Widget.java:1594)
+	at org.eclipse.swt.widgets.Control.WM_CHAR(Control.java:4866)
+	at org.eclipse.swt.widgets.Canvas.WM_CHAR(Canvas.java:345)
+	at org.eclipse.swt.widgets.Control.windowProc(Control.java:4744)
+	at org.eclipse.swt.widgets.Canvas.windowProc(Canvas.java:340)
+	at org.eclipse.swt.widgets.Display.windowProc(Display.java:5040)
+	at org.eclipse.swt.internal.win32.OS.DispatchMessage(Native Method)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3658)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:645)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:552)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:171)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:651)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:588)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1459)
+
+
+
+
+
+
+
+
+
+
+
+The save participant 'org.eclipse.jdt.ui.postsavelistener.cleanup' caused an exception: java.lang.NullPointerException: Cannot invoke ""org.eclipse.jdt.internal.corext.refactoring.nls.NLSLine.getElements()"" because ""nlsLine"" is null
+
+Trace:
+java.lang.NullPointerException: Cannot invoke ""org.eclipse.jdt.internal.corext.refactoring.nls.NLSLine.getElements()"" because ""nlsLine"" is null
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore$StringConcatFinder.visit(StringConcatToTextBlockFixCore.java:188)
+	at org.eclipse.jdt.core.dom.InfixExpression.accept0(InfixExpression.java:353)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3302)
+	at org.eclipse.jdt.core.dom.MemberValuePair.accept0(MemberValuePair.java:157)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.NormalAnnotation.accept0(NormalAnnotation.java:153)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.ArrayInitializer.accept0(ArrayInitializer.java:124)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChild(ASTNode.java:3302)
+	at org.eclipse.jdt.core.dom.SingleMemberAnnotation.accept0(SingleMemberAnnotation.java:155)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.TypeDeclaration.accept0(TypeDeclaration.java:494)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.core.dom.ASTNode.acceptChildren(ASTNode.java:3325)
+	at org.eclipse.jdt.core.dom.CompilationUnit.accept0(CompilationUnit.java:258)
+	at org.eclipse.jdt.core.dom.ASTNode.accept(ASTNode.java:3254)
+	at org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore.createCleanUp(StringConcatToTextBlockFixCore.java:790)
+	at org.eclipse.jdt.internal.ui.fix.StringConcatToTextBlockCleanUpCore.createFixCore(StringConcatToTextBlockCleanUpCore.java:54)
+	at org.eclipse.jdt.internal.ui.fix.AbstractCleanUpCoreWrapper.createFix(AbstractCleanUpCoreWrapper.java:53)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:768)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpPostSaveListener.saved(CleanUpPostSaveListener.java:384)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider$4.run(CompilationUnitDocumentProvider.java:1618)
+	at org.eclipse.core.runtime.SafeRunner.run(SafeRunner.java:45)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider.notifyPostSaveListeners(CompilationUnitDocumentProvider.java:1612)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider.commitWorkingCopy(CompilationUnitDocumentProvider.java:1396)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitDocumentProvider$3.execute(CompilationUnitDocumentProvider.java:1471)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider$DocumentProviderOperation.run(TextFileDocumentProvider.java:133)
+	at org.eclipse.ui.actions.WorkspaceModifyDelegatingOperation.execute(WorkspaceModifyDelegatingOperation.java:71)
+	at org.eclipse.ui.actions.WorkspaceModifyOperation.lambda$0(WorkspaceModifyOperation.java:110)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2453)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2478)
+	at org.eclipse.ui.actions.WorkspaceModifyOperation.run(WorkspaceModifyOperation.java:131)
+	at org.eclipse.ui.internal.editors.text.WorkspaceOperationRunner.run(WorkspaceOperationRunner.java:76)
+	at org.eclipse.ui.internal.editors.text.WorkspaceOperationRunner.run(WorkspaceOperationRunner.java:66)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider.executeOperation(TextFileDocumentProvider.java:461)
+	at org.eclipse.ui.editors.text.TextFileDocumentProvider.saveDocument(TextFileDocumentProvider.java:764)
+	at org.eclipse.ui.texteditor.AbstractTextEditor.performSave(AbstractTextEditor.java:5009)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditor.performSave(CompilationUnitEditor.java:1267)
+	at org.eclipse.jdt.internal.ui.javaeditor.CompilationUnitEditor.doSave(CompilationUnitEditor.java:1321)
+	at org.eclipse.ui.texteditor.AbstractTextEditor$TextEditorSavable.doSave(AbstractTextEditor.java:7185)
+	at org.eclipse.ui.Saveable.doSave(Saveable.java:213)
+	at org.eclipse.ui.internal.SaveableHelper.doSaveModel(SaveableHelper.java:333)
+	at org.eclipse.ui.internal.SaveableHelper.lambda$1(SaveableHelper.java:196)
+	at org.eclipse.ui.internal.SaveableHelper.lambda$3(SaveableHelper.java:271)
+	at org.eclipse.jface.operation.ModalContext.runInCurrentThread(ModalContext.java:434)
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:352)
+	at org.eclipse.ui.internal.WorkbenchWindow.lambda$7(WorkbenchWindow.java:2346)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:67)
+	at org.eclipse.ui.internal.WorkbenchWindow.run(WorkbenchWindow.java:2344)
+	at org.eclipse.ui.internal.SaveableHelper.runProgressMonitorOperation(SaveableHelper.java:278)
+	at org.eclipse.ui.internal.SaveableHelper.runProgressMonitorOperation(SaveableHelper.java:260)
+	at org.eclipse.ui.internal.SaveableHelper.saveModels(SaveableHelper.java:207)
+	at org.eclipse.ui.internal.SaveableHelper.savePart(SaveableHelper.java:150)
+	at org.eclipse.ui.internal.WorkbenchPage.saveSaveable(WorkbenchPage.java:3825)
+	at org.eclipse.ui.internal.WorkbenchPage.saveEditor(WorkbenchPage.java:3838)
+	at org.eclipse.ui.internal.handlers.SaveHandler.execute(SaveHandler.java:82)
+	at org.eclipse.ui.internal.handlers.HandlerProxy.execute(HandlerProxy.java:283)
+	at org.eclipse.ui.internal.handlers.E4HandlerProxy.execute(E4HandlerProxy.java:97)
+	at jdk.internal.reflect.GeneratedMethodAccessor63.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.e4.core.internal.di.MethodRequestor.execute(MethodRequestor.java:58)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invokeUsingClass(InjectorImpl.java:300)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invoke(InjectorImpl.java:234)
+	at org.eclipse.e4.core.contexts.ContextInjectionFactory.invoke(ContextInjectionFactory.java:173)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceHandler.execute(HandlerServiceHandler.java:156)
+	at org.eclipse.core.commands.Command.executeWithChecks(Command.java:488)
+	at org.eclipse.core.commands.ParameterizedCommand.executeWithChecks(ParameterizedCommand.java:485)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceImpl.executeHandler(HandlerServiceImpl.java:213)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.executeCommand(KeyBindingDispatcher.java:308)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.press(KeyBindingDispatcher.java:580)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.processKeyEvent(KeyBindingDispatcher.java:655)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.filterKeySequenceBindings(KeyBindingDispatcher.java:439)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher$KeyDownFilter.handleEvent(KeyBindingDispatcher.java:96)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.filterEvent(Display.java:1286)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1065)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1090)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1075)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1117)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1113)
+	at org.eclipse.swt.widgets.Widget.wmChar(Widget.java:1594)
+	at org.eclipse.swt.widgets.Control.WM_CHAR(Control.java:4866)
+	at org.eclipse.swt.widgets.Canvas.WM_CHAR(Canvas.java:345)
+	at org.eclipse.swt.widgets.Control.windowProc(Control.java:4744)
+	at org.eclipse.swt.widgets.Canvas.windowProc(Canvas.java:340)
+	at org.eclipse.swt.widgets.Display.windowProc(Display.java:5040)
+	at org.eclipse.swt.internal.win32.OS.DispatchMessage(Native Method)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3658)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:645)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:342)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:552)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:171)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:651)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:588)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1459)
+@jjohnstn : I see NP in org.eclipse.jdt.internal.corext.fix.StringConcatToTextBlockFixCore.StringConcatFinder.visit(InfixExpression) is because NLSUtil.scanCurrentLine() can return null (and does it).
+Can you please check? Seem to be coming from 0023b84.
+@iloveeclipse Will fix.
+Thanks Jeff!
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/432,"Improve the Safety of ""Extract Local Variable"" refactorings by identifying statements that may change the value of the extracted expressions",closed,2023-02-10 16:22:31+00:00,2023-04-11 18:39:09+00:00,1,1,Extract Local Variable,behavior change,nan,overly weak preconditions,"Improve the Safety of ""Extract Local Variable"" refactorings by identifying statements that may change the value of the extracted expressions #432
+Description
+""Extract Local Variable"" refactoring in Eclipse provides an option to replace all occurrences of the selected expression with references to the newly extracted local variable. However, it may result in semantic errors when the selected expression (to be extracted as a variable) depends on variables that could be changed by statements between the initialization of the variable and the accesses (references) to the variables.
+We take the following sample code to illustrate the bug:
+1   /* CS1: Original Code Snippet */
+2   String[] Lines;
+3   int i;
+4   private void inc() {
+5   	i++;
+6   }
+7   ...
+8   log.warn(Lines[i]);
+9   ...
+10  log.warn(Lines[i]);
+11  ...
+12  inc();
+13  ...
+14  log.warn(Lines[i]);
+
+
+
+
+
+
+
+
+
+If we select expression Lines[i] (line 10 in CS1), conduct refactoring ""extract local variable"", and name the new variable as x (enabling ""replace all occurrences""), we will get the following code snippet:
+1   /* CS2: Code Snippet after incorrect refactoring */
+2   String[] Lines;
+3   int i;
+4   private void inc() {
+5   	i++;
+6   }
+7   ...
+8   String x= Lines[i];
+9   log.warn(x);
+10  ...
+11  log.warn(x);
+12  ...
+13  inc();
+14  ...
+15  log.warn(x);
+
+
+
+
+
+
+
+
+
+The refactoring is incorrect because the original values of Lines[i] at Line 8 and Line 10 in CS1 are different from Lines[i] at Line 14. Consequently, replacing Lines[i] at Line 15 in CS2 with x is incorrect.
+Solution
+The solution is composed of two parts. The first part is to calculate the path between the initialization of generated variable and the to-be-inserted references to the variable. The second part is the validation of the changed value.
+To calculate the path, we parse the current BodyDeclaration as an AST, and do a root-first traversal between expressions that are to be verified. We will record these visited nodes without duplication. Notably, we take the method call (but exclude the following method calls) and its implementation into consideration. Besides, control statements (loop-statement, condition-statement, etc.) are also considered for accuracy. However, some dead code and complex control statements(break, continue, goto, etc.) are not considered due to potentially large cost.
+To validate of changed value, we will traverse all nodes of the path we have gotten to make sure neither of them do update the variables that the selected expression depends on. It should be pointed out that we currently only consider source code, and subsequent commits will provide support for Java Class Library.
+In the end, our desired refactoring result is as follows:
+1   /* CS3: Code Snippet after correct refactoring */
+2   String[] Lines;
+3   int i;
+4   private void inc() {
+5   	i++;
+6   }
+7   ...
+8   String x= Lines[i];
+9   log.warn(x);
+10  ...
+11  log.warn(x);
+12  ...
+13  inc();
+14  ...
+15  log.warn(Lines[i]);
+
+
+
+
+
+
+
+
+
+The above is our proposed solution, if you have any comments or suggestions, please let us know.
+Seems reasonable.  You could simplify the cases where you are protecting a local public/protected field and assume a public/protected method call could be overridden in which case, you assume the method call is dangerous (as opposed to spending time analyzing the method and subsequent method calls).  In your example, if i was declared public and inc() was declared public you would stop reusing x at that point.
+@jjohnstn  please kindly review the submitted pull request at #439
+Thanks.
+@liuhuigmail Will do today.
+Closing as done with #439
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/39,"Incorrect ""Extract Variable"" refactoring, resulting in NullPointerException",closed,2022-05-07 12:47:36+00:00,2022-11-04 21:25:33+00:00,1,1,Extract Variable,exception,nan,overly weak preconditions,"Incorrect ""Extract Variable"" refactoring, resulting in NullPointerException #39
+Incorrect ""Extract Variable"" refactoring, resulting in NullPointerException
+Description
+""Extract Variable"" refactoring is a useful feature of JDT. However, in some cases, it may not work correctly. Here we report a bug in this feature and attach a feasible patch for the bug.
+We take the following sample code to illustrate the bug:
+1   /* CS1: Original Code Snippet */
+2   public String metaPhone(final String txt){
+3       boolean hard = false;
+4       if(txt == null || txt.length() == 0){
+5           return """";
+6       }
+7       if(txt.length() == 1){
+8           return txt.toUpperCase(java.util.Local.ENGLISH);
+9       }
+10      //Do other things
+11      // ...
+12   }
+
+
+
+
+
+
+
+
+
+If we select expression txt.length() (line 4 in CS1), conduct refactoring ""extract local variable"",and name the new variable as length , we will get the following code snippet:
+1   /* CS2: Code Snippet after refactoring */
+2   public String metaPhone(final String txt){
+3       boolean hard = false;
+4       int length = txt.length();
+5       if(txt == null || length == 0){
+6           return """";
+7       }
+8       if(length == 1){
+9           return txt.toUpperCase(java.util.Local.ENGLISH);
+10       }
+11      //Do other things
+12      // ...
+13   }
+
+
+
+
+
+
+
+
+
+The refactoring is incorrect and dangerous. If the method is called via metaphone(null), the refactored version of the method would result in NullPointerException whereas the original version would not.
+Solution
+The most simple and intuitive solution is to WARN the developers if the refactored version would result in NullPointerException.
+
+
+First, once developers select an expression and invoke ""extract variable"" refactoring, we create a list of subexpressions of the selected expression. For example, if we extract expression like a.b.f().c, the list should contain a, a.b, and a.b.f(). The list is noted as ExpList.
+
+
+Second, we analyze the code snippet between the newly introduced local variable declaration (line 4 in CS2) and the first usage of the variable (line 5 in CS2). If the code snippet contains InfixExpression node like x==null, and x is on ExpList, we warn the developer with clear information about the potential problem.
+
+
+
+Similar error may occur when developers select txt.length() on other places (i.e., line 7 in CS1) to conduct ""extract variable"" refactoring. The refactoring will get the same result as CS2.
+To this end, we apply a greedy strategy to extract as many as expressions without introducing NullPointerException.
+
+First, we validate whether the selected expression (EXP)itself could be extracted safely. If not, we warn the developers.
+Second, we search backward from EXP for expressions identical to EXP, and validate whether they could be extracted together safely. Resulting in a sequence of instances of the expression, noted as InsExp1.
+Third, we search forward from EXP for expressions identical to EXP, and validate whether they could be extracted together. Resulting in a sequence of instances of the expression, noted as InsExp2.
+Finally, we declare and initialize a local variable var and replace all instances in InsExp2, EXP, and InsExp2.
+The refactoring is accomplished.
+
+The relevant code has been completed and the corresponding PR will be submitted later.
+I believe the correct answer is that the declaration should never be backed up before the null check.  In the example given, it should be placed just before its usage in the second if statement.  A cleanup/refactoring should never change the behaviour of the code if possible.  In this case, if we can identify there is a potential issue, we can create valid code instead of warning the user.  I will take a look at your PR to see if it can be used for this.  I think it may need to be more generic (e.g. look for all assignments and checks of the field/method's expression pieces), but I haven't looked at it closer.  It also will need a test case.
+I see with your change that you do this correctly if the user picks the second txt.length() call to refactor.  It only changes the 2nd call and subsequent calls and puts the declaration before the 2nd if statement.  However, when the first txt.length() statement is chosen, you issue the warning and then only the first txt.length() gets changed if the user continues.  I would like the code to recognize the issue and then skip to the next use and do exactly what you do for the 2nd call.
+Thanks a lot for your reply! For the past few months, we've been working on improving extracting local variable refactoring, and the completed code will be submitted as a patch later.
+As you suggested, if the first txt.length() is chosen, the result of conducting refactoring would be the same as the second txt.length(). We only warn if only one expression is extracted and such refactoring would result in NullPointerException. Besides, we have added relevant test cases to verify the check. The modification of the relevant code has been committed to PR.
+I will take a look.
+I tried out the latest code.  Works much better, thanks.  For the first call, it leaves it alone and puts the local variable after the first if without any warnings; same behavior when the 2nd txt.length() call is selected.  I'll take a look at why it is not building with latest rebase and do the official code review.
+@jjohnstn  Thank you for reviewing the pull request. We have reported another similar bug (#331) concering the Extract Local Varialbe refactoring, and have submitted the corresponding patch (#333). We notice that the bug report has not yet been handled althougt it has been submitted for quite a long time (17 days). Would you please kindly help to review the bug report and its corresponding pull resust?  Thank you.
+@liuhuigmail Hi, we are just wrapping up the final details of the 2022-12 release so I will take a look this week.
+@jjohnstn Thank you.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/331,"Improve the Safety of ""Extract Local Variable"" Refactorings concering ClassCasts",closed,2022-11-08 15:22:17+00:00,2023-02-08 22:15:37+00:00,1,1,Extract Variable,exception,instance of,overly weak preconditions,"Improve the Safety of ""Extract Local Variable"" Refactorings concering ClassCasts #331
+Improve the Safety of ""Extract Local Variable"" Refactorings concerning ClassCasts
+Description
+In previous work (commit ID: 2987007), we improved the safety of extract variable refactorings in JDT that otherwise may have resulted in NullPointerException. However, as specified in the issue(issue ID: 39), if the extracted expression is a classcast, the extract variable refactoring conducted by JDT may result in NULLPOINTER EXCEPTION as well. This problem has not yet been fixed.
+Considering such example:
+1   /* CS1: Original Code Snippet */
+2    void foo(Object obj){
+3       if(obj instanceof Integer && ((Integer)obj).intValue() > 0){
+4             System.out.println(((Integer)obj).intValue());
+5       }else if(obj instanceof Float && ((Float)obj).floatValue() > 0.0){
+6            System.out.println(((Float)obj).floatValue());
+7       }
+8    }
+
+
+
+
+
+
+
+
+
+If we select the expression ((Integer)obj).intValue() (line 4 in CS1), and conduct refactoring ""extract local variable"",and name the new variable as value, we will get the following code snippet:
+1   /* CS2: Refactored Code Snippet */
+2    void foo(Object obj){
+3       int value = ((Integer) obj).intValue();
+4       if(obj instanceof Integer && value > 0){
+5             System.out.println(value);
+6       }else if(obj instanceof Float && ((Float)obj).floatValue() > 0.0){
+7            System.out.println(((Float)obj).floatValue());
+8       }
+9    }
+
+
+
+
+
+
+
+
+
+Such refactoring is incorrect and dangerous. If the method is called via foo(new Float(3.5)), the refactored version of the method would result in ClassCastException whereas the original version would not.
+Solution
+The main difference between NullPointerException case and ClassCastException case is the condition that would cause ClassCastException. We defined the case as sub-condition obj instanceof Class1 and sub-condition ((Class2)obj).method() occur sequentially in the same logical expression which is between the declaration position and the position where the first expression appears, where Class2 is the superclass of Class1.
+The correct and safe refactorings would be as:
+1   /* CS3: Safe Refactored Code Snippet */
+2    void foo(Object obj){
+3       if(obj instanceof Integer && ((Integer)obj).intValue() > 0){
+4             int value = ((Integer) obj).intValue();
+5             System.out.println(value);
+6       }else if(obj instanceof Float && ((Float)obj).floatValue() > 0.0){
+7            System.out.println(((Float)obj).floatValue());
+8       }
+9    }
+
+
+
+
+
+
+
+
+
+The corresponding PR will be submitted later.
+@ktatavarthi hi, could you please confirm the bug report? Thanks a lot.
+The patch for this issue is under review now (#333 (comment)).
+Can somebody help to check this issue and kindly confirm the bug?  Thanks.
+Closing this issue as the PR has been merged.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/381,"Clean up ""Convert to switch expression"" crashes with NullPointerException due to return without expression",closed,2023-01-12 11:12:20+00:00,2023-01-12 21:49:44+00:00,1,1,Convert to switch expression,exception,nan,overly weak preconditions,"Clean up ""Convert to switch expression"" crashes with NullPointerException due to return without expression #381
+Applying the clean up ""Convert to switch expression"" on the code
+public class Test {
+
+  public void f(int i) {
+    switch (i) {
+      case 0:
+        return;
+      default:
+        throw new AssertionError();
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+leads to the error message ""An unexpected exception occurred while creating a change object"" and the following stack trace in the error log:
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:395)
+	at org.eclipse.jface.wizard.WizardDialog.run(WizardDialog.java:1034)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:662)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:504)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:77)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:113)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpRefactoringWizard$CleanUpConfigurationPage.getNextPage(CleanUpRefactoringWizard.java:437)
+	at org.eclipse.jface.wizard.WizardDialog.nextPressed(WizardDialog.java:911)
+	at org.eclipse.jface.wizard.WizardDialog.buttonPressed(WizardDialog.java:469)
+	at org.eclipse.jface.dialogs.Dialog.lambda$0(Dialog.java:619)
+	at org.eclipse.swt.events.SelectionListener$1.widgetSelected(SelectionListener.java:84)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:252)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5855)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5065)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4517)
+	at org.eclipse.jface.window.Window.runEventLoop(Window.java:823)
+	at org.eclipse.jface.window.Window.open(Window.java:799)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:190)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startCleanupRefactoring(RefactoringExecutionStarter.java:257)
+	at org.eclipse.jdt.internal.ui.actions.AllCleanUpsAction.performRefactoring(AllCleanUpsAction.java:71)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:186)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:116)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:274)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5855)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5065)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4517)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:643)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:550)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:171)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+	at org.eclipse.equinox.launcher.Main.main(Main.java:1440)
+Caused by: java.lang.NullPointerException
+	at org.eclipse.jdt.internal.corext.fix.SwitchExpressionsFixCore$SwitchExpressionsFixOperation.getNewStatementFromReturn(SwitchExpressionsFixCore.java:511)
+	at org.eclipse.jdt.internal.corext.fix.SwitchExpressionsFixCore$SwitchExpressionsFixOperation.rewriteAST(SwitchExpressionsFixCore.java:388)
+	at org.eclipse.jdt.internal.corext.fix.CompilationUnitRewriteOperationsFixCore.createChange(CompilationUnitRewriteOperationsFixCore.java:98)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpFixWrapper.createChange(CleanUpFixWrapper.java:46)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:775)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:82)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Root exception:
+java.lang.NullPointerException
+	at org.eclipse.jdt.internal.corext.fix.SwitchExpressionsFixCore$SwitchExpressionsFixOperation.getNewStatementFromReturn(SwitchExpressionsFixCore.java:511)
+	at org.eclipse.jdt.internal.corext.fix.SwitchExpressionsFixCore$SwitchExpressionsFixOperation.rewriteAST(SwitchExpressionsFixCore.java:388)
+	at org.eclipse.jdt.internal.corext.fix.CompilationUnitRewriteOperationsFixCore.createChange(CompilationUnitRewriteOperationsFixCore.java:98)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpFixWrapper.createChange(CleanUpFixWrapper.java:46)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:775)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:82)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+
+
+
+
+
+
+
+
+
+
+It seems that this code needs to handle return statements without an expression.
+I am using version 4.26.0.20221201-1200 of the Eclipse IDE for Java Developers and version 3.27.100.v20221122-0749 of org.eclipse.jdt.ui, which is the latest that the updater offers for me.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/348,"Improve the Safety of ""Extract Local Variable"" Refactorings by Identifying the Side Effect of Selected Expression",closed,2022-12-13 13:56:24+00:00,2023-01-20 19:03:59+00:00,1,1,Extract Local Variable,behavior change,nan,overly weak preconditions,"Improve the Safety of ""Extract Local Variable"" Refactorings by Identifying the Side Effect of Selected Expression #348
+Improve the Safety of ""Extract Local Variable"" Refactorings by Identifying the Side Effect of Selected Expression
+Description
+""Extract Variable"" refactoring in Eclipse provides an option to replace all occurrences of the selected expression with references to the newly extracted local variable. However, it may result in semantic errors when the selected expression (to be extracted as a variable) has side effect, i.e., it may change the states of the system.
+A simple and straightforward example is Lines[i++]:
+1   /* CS1: Original Code Snippet */
+2   String[] Lines;
+3   int i;
+4   private String foo(String msg) {
+5   	return msg+"": ""+ Lines[i++];
+6   }
+7   ...
+8   log.warn(foo(""Format warning""));
+9   ...
+10  log.warn(foo(""Format warning""));
+
+
+
+
+
+
+
+
+
+Extracting foo(""Format warning"") as local variable (enabling ""replace all occurrences"") would result in the following code:
+1   /* CS2: Code Snippet After Refactoring */
+2   String[] Lines;
+3   int i;
+4   private String foo(String msg) {
+5   	return msg+"": ""+ Lines[i++];
+6   }
+7   ...
+8   String foo= foo(""Format warning"");
+9   log.warn(foo);
+10  ...
+11  log.warn(foo);
+
+
+
+
+
+
+
+
+
+The resulting code is semantically different from the original code, which results in semantic errors.
+Solution
+We should check the potential side effect of the selected expression before the actual conduction of the Extract Local Variable refactoring.
+The key of the checking is composed of two parts. The first is to identify all statements that may be executed by the selected expression, which may include the expression itself and all statements directly or indirectly invoked by the expression. To guarantee the performance of the IDE, we would confine the method call stack to the first four levels (if there are any).
+The second part is to validate whether the collected statements would change any status of the systems, i.e., updating variables/parameters/fields or generating outputs.   Notably, if we cannot access the body of the method invoked by the retrieved statements, we simply assume the method is safe (having no side effect) to minimize the chance of false alarms.
+To guarantee the performance (response time) of the refactoring engine, we can set a maximum analyzing time (e.g., 3 or 5 seconds). If the analysis terminates within the given time slot, that is fine. If fail, it would return what the current version of Eclipse returns (i.e., allowing the extracting of the selected expression).
+The above is our proposed solution, if you have any comments or suggestions, please let us know.
+@jjohnstn We have added a new issue, could you please check if our solution meets your expectations and requirements? Thank you so much.
+I think that protecting all method call scenarios would be too significant a cost to do each time and in the end, it still is ""user beware"" as you might still run out of time.  Any method call that has side-effects should probably document them in its Javadoc and the user can discover this by hovering over the method name.  That said, you could scan just the single method itself (no following method calls) and look for field, input variable, and static variable changes.  Not sure about looking for outputs as these might be false positives in that they are error messages not meant to occur or output gets overwritten with the same data over and over again.  Even obvious side-effects may not occur (e.g. an error counter protected by an if statement).  To that end, you could issue a warning dialog that ""possible side-effects are detected, do you wish to continue?""  Beyond direct changes in the method and call itself, I think it is fair to treat other scenarios as ""user beware"" (remember the user is manually choosing to extract the call into a local variable).  You could also add additional support to check expressions using the ASTNodes.isPassive() method.  This would screen out such obvious cases like extracting a[x++].
+@jjohnstn  Thank you for quick response. So, we should
+
+Validate the selected expression with ASTNodes.isPassive() first
+If the selected expression contains any method invocation, we scan just the invoked methods themselves (no following method calls) and look for field, input variable, and static variable changes.
+
+@chixiaye  Would you please kindly prepare a pull request according to the preceding description? Thank you.
+Just to clarify point 1: you need to check any expression that is part of the selection (the selection might not be an expression itself but may have expressions in it  e.g. a[i++].getInteger()).
+Got it. I will prepare PR based on your suggestions. THX a lot.
+Hi, I was off for the holidays.  Regarding the latest patch, sorry I wasn't clear above.  If you know there are side-effects that will change the logic, you should not make the change (e.g. if you have code with a[i++] + a[i++] then you should not extract the a[i++] in this case as it is a logic change to replace both references with one local variable).  In this case, you shouldn't ask the end-user.  You could, if you want, do the extraction if there was only one instance replaced as you know that the logic hasn't changed unless you move it before a reference to i.  Only in the case where you don't know if you have side-effects should you ask the user.  So, if you have a method call to extract and you scan the method but find nothing then you can go ahead but if that method has other method calls that you don't follow and scan as mentioned earlier, then you can qualify this as ""potential side-effects"" and ask if the user wants to continue.   I think for your method scanning you could add some common Java library methods as clean to reduce the odds of asking the end-user (e.g. consider java.lang.String methods as clean) so if a method just called String methods and didn't assign the output of such calls to cause side-effects, then it would be considered clean.  I would suggest you make the user message more specific since it will only involve method calls.  For example, ""The extraction will contain a method call that may cause side-effects, do you wish to continue?"")
+Thank you very much for your comments. I'm sorry for not clarifying the patch. Your suggestions will guarantee the accuracy of refactoring, but I have the following two concerns.
+First, in my opinion, when we think that an extracted expression has side effects, it may not happen all the time. So extracting multiple expressions does not necessarily lead to a change in semantics. For example,
+int i= getAndAdd(0);
+int j= getAndAdd(0);
+...
+getAndAdd(int cnt){
+    int res= this.value;
+    this.value+= cnt;
+    return res;
+}
+
+
+
+
+
+
+
+
+
+In our algorithm, the method getAndAdd is considered to have side effects. Extracting getAndAdd(0) would not lead to a change in semantics obviously. But in another case, if the expression getAndAdd(1) was selected, the semantics of the code would be changed. Although data flow and control flow analysis can solve this problem, the computational cost is huge. For this kind of side effect expression, we are certain to some extent, I think it would be more appropriate to warn the user. Of course, for expressions that do not involve function calls that have potential side effects, like a[i++], we can directly extract only a single expression. For example,
+return a[++i] + a[++i] + a[++i];
+
+
+
+
+
+
+
+
+
+Select the first a[++i] expression and open replace all option to do refactoring, the right result would be:
+int v= a[++i]; 
+return v + a[++i] + a[++i];
+
+
+
+
+
+
+
+
+
+Second, regarding function calls whose side effects cannot be judged, my concern is that introducing too often warning messages will make the user experience bad. Because just marking some common methods may not be enough. In a real Java development project, it is inevitable to use external APIs and utilize Java polymorphism. I think that the ambiguous functions can be seen as having no side effects (most of them truly do not). And for the methods like print,log,currentTimeMillis ... we can send a warning message to the user.
+The above are some of my personal opinions. I sincerely look forward to reaching an aggrement.
+Hi @chixiaye.  Thanks for the update.  I like your idea to only make one change for an expression with known side-effects.  That way a user will see a change but it won't change the logic.  I think you should take the same approach with a method that has direct side-effects as well (rather than a warning).  Otherwise, the user is forced to know the logic of the method that is being called or look up its source in the middle of the change which isn't feasible.  I think in both cases, you should check for the ""change all occurrences"" preference and if it is enabled and there is more than one usage in the file to change, issue a log message or a dialog that tells the user only one instance can be extracted due to side-effects.  Now, the user has all the info needed and no difficult decision to make.  Regarding methods with no direct side-effects, I am fine with your idea of making the change without a warning, but if you find calls to print, etc.. that you know cause side-effects, then the rules above apply.  What do you think?
+Glad to receive your response and thank you so much for your suggestions. Warnings make users recheck the code, which really increases the user's cost.
+In the following, based on your suggestions, I would illustrate the refactoring with some specific examples. If any ideas differ from yours or misunderstand what you meant, please let me know. In these examples, replace all occurrences option is opened.
+Example-1: Expression does have side effects
+return arr[i++] + arr[i++];
+
+
+
+
+
+
+
+
+
+Select the first expression arr[i++] and do refactoring. Only one expression was extracted as follows, and a dialog(information dialog rather than warning dialog) would pop up to remind the user like Only one expression can be extracted due to side-effects.
+int v= arr[i++];
+return v + arr[i++];
+
+
+
+
+
+
+
+
+
+Example-2: Expression that contains side-effects method invocation
+return inc() + inc();
+int inc(){
+    return ++this.value;
+}
+
+
+
+
+
+
+
+
+
+Select the first expression inc() and do refactoring. Only one expression was extracted, and a dialog would pop up as well.
+int v= inc();
+return v + inc();
+int inc(){
+    return ++this.value;
+}
+
+
+
+
+
+
+
+
+
+Example-3: Expression that's not sure about side effects
+System.out.println(list.size()+"",""+list.size());
+
+
+
+
+
+
+
+
+
+Select the first expression list.size() and do refactoring. All two expressions were extracted.
+int v= list.size();
+System.out.println(v+"",""+v);
+
+
+
+
+
+
+
+
+
+Example-4: Expression that contains marked methods
+long start= System.currentTimeMillis();
+...
+if(System.currentTimeMillis() - start < slot){
+    ...
+}
+
+
+
+
+
+
+
+
+
+Select the second expression System.currentTimeMillis() and do refactoring. Only the selected expression was extracted, and a dialog would pop up.
+long start= System.currentTimeMillis();
+...
+long v= System.currentTimeMillis();
+if(v - start < slot){
+    ...
+}
+
+
+
+
+
+
+
+
+
+BTW, a patch was resubmitted in ClassCast PR. Could you kindly check the patch? Thanks a lot.
+Hi @chixiaye.  That looks good.  Will look at the patch.
+@jjohnstn  Would you please kindly check the updated patch #360? Thanks.
+Closing with merge of #360
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/380,"Clean up ""Convert to switch expression"" crashes with ClassCastException due to ThrowStatement",closed,2023-01-12 10:58:42+00:00,2023-01-12 19:51:27+00:00,1,1,Convert to switch expression,exception,nan,ast rewrite issue,"Clean up ""Convert to switch expression"" crashes with ClassCastException due to ThrowStatement #380
+Applying the clean up ""Convert to switch expression"" on the code
+public class Test {
+
+  public void bar() {}
+
+  public int foo(int i) {
+    switch (i) {
+      case 0:
+        return 0;
+      default:
+        bar();
+        throw new AssertionError();
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+leads to the error message ""An unexpected exception occurred while creating a change object"" and the following stack trace in the error log:
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:395)
+	at org.eclipse.jface.wizard.WizardDialog.run(WizardDialog.java:1034)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:662)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:504)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:77)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:113)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpRefactoringWizard$CleanUpConfigurationPage.getNextPage(CleanUpRefactoringWizard.java:437)
+	at org.eclipse.jface.wizard.WizardDialog.nextPressed(WizardDialog.java:911)
+	at org.eclipse.jface.wizard.WizardDialog.buttonPressed(WizardDialog.java:469)
+	at org.eclipse.jface.dialogs.Dialog.lambda$0(Dialog.java:619)
+	at org.eclipse.swt.events.SelectionListener$1.widgetSelected(SelectionListener.java:84)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:252)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5855)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5065)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4517)
+	at org.eclipse.jface.window.Window.runEventLoop(Window.java:823)
+	at org.eclipse.jface.window.Window.open(Window.java:799)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:190)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startCleanupRefactoring(RefactoringExecutionStarter.java:257)
+	at org.eclipse.jdt.internal.ui.actions.AllCleanUpsAction.performRefactoring(AllCleanUpsAction.java:71)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:186)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:116)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:274)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5855)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5065)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4517)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:643)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:550)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:171)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+	at org.eclipse.equinox.launcher.Main.main(Main.java:1440)
+Caused by: java.lang.ClassCastException: class org.eclipse.jdt.core.dom.ThrowStatement cannot be cast to class org.eclipse.jdt.core.dom.ExpressionStatement (org.eclipse.jdt.core.dom.ThrowStatement and org.eclipse.jdt.core.dom.ExpressionStatement are in unnamed module of loader org.eclipse.osgi.internal.loader.EquinoxClassLoader @45da40ad)
+	at org.eclipse.jdt.internal.corext.fix.SwitchExpressionsFixCore$SwitchExpressionsFixOperation.rewriteAST(SwitchExpressionsFixCore.java:407)
+	at org.eclipse.jdt.internal.corext.fix.CompilationUnitRewriteOperationsFixCore.createChange(CompilationUnitRewriteOperationsFixCore.java:98)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpFixWrapper.createChange(CleanUpFixWrapper.java:46)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:775)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:82)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+
+
+
+
+
+
+
+
+
+
+The error does not occur if either the call to bar() or the throw are removed.
+It seems that this code for adding a yield statement for cases with more than one statement needs to gain a case for ThrowStatement like the code for single-statement cases has.
+I am using version 4.26.0.20221201-1200 of the Eclipse IDE for Java Developers and version 3.27.100.v20221122-0749 of org.eclipse.jdt.ui, which is the latest that the updater offers for me.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/201,Refactor rename reports shadowing when there is none,closed,2022-08-05 11:58:38+00:00,2022-08-11 15:11:44+00:00,1,1,rename method,incorrect warning messages,nan,flow analysis issue,"Refactor rename reports shadowing when there is none #201
+To reproduce:
+
+Import projects from: RefactorRenameShadowingBug.zip
+Open type ```test1.impl.ITes`t``.
+Refactor rename foo() to foo1().
+Observe reported shadowing problems:
+
+
+There is no shadowing though, the rename is fine.
+Cause:
+Looks like JDT UI ""thinks"" there are no search matches for the new method in the mentioned files, after the rename. So it reports shadowing (as it thinks the rename did nothing).
+This is the case due to the order of elements passed to: RenameMethodProcessor.batchFindNewOccurrences() (and in particular, delegated to RefactoringScopeFactory.create(IMember[])). test2.Foo seems to be found first by RippleMethodFinder2.getRelatedMethods() and so only its project is used for the search. I.e. the scope is created with only the project Test2 and so the search misses some occurrences. The refactor rename then thinks those missed occurrences are shadowing, instead of subject to the rename.
+The problem is created with this stack trace:
+""ModalContext"" #199 prio=6 os_prio=0 cpu=45.89ms elapsed=16.76s tid=0x00007ffff3240000 nid=0x3dce at breakpoint [0x00007fff29cf4000]
+   java.lang.Thread.State: RUNNABLE
+        at org.eclipse.jdt.internal.corext.refactoring.rename.RenameAnalyzeUtil.addShadowsError(RenameAnalyzeUtil.java:387)
+        at org.eclipse.jdt.internal.corext.refactoring.rename.RenameAnalyzeUtil.analyzeRenameChanges2(RenameAnalyzeUtil.java:277)
+        at org.eclipse.jdt.internal.corext.refactoring.rename.RenameMethodProcessor.analyzeRenameChanges(RenameMethodProcessor.java:572)
+        at org.eclipse.jdt.internal.corext.refactoring.rename.RenameMethodProcessor.doCheckFinalConditions(RenameMethodProcessor.java:412)
+        at org.eclipse.jdt.internal.corext.refactoring.rename.RenameVirtualMethodProcessor.doCheckFinalConditions(RenameVirtualMethodProcessor.java:148)
+        at org.eclipse.jdt.internal.corext.refactoring.rename.JavaRenameProcessor.checkFinalConditions(JavaRenameProcessor.java:51)
+        at org.eclipse.ltk.core.refactoring.participants.ProcessorBasedRefactoring.checkFinalConditions(ProcessorBasedRefactoring.java:226)
+        at org.eclipse.ltk.core.refactoring.Refactoring.checkAllConditions(Refactoring.java:165)
+        at org.eclipse.jdt.internal.ui.refactoring.RefactoringExecutionHelper$Operation.run(RefactoringExecutionHelper.java:84)
+        at org.eclipse.jdt.internal.core.BatchOperation.executeOperation(BatchOperation.java:41)
+        at org.eclipse.jdt.internal.core.JavaModelOperation.run(JavaModelOperation.java:740)
+        at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+        at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+        at org.eclipse.jdt.core.JavaCore.run(JavaCore.java:5929)
+        at org.eclipse.jdt.internal.ui.actions.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:108)
+        at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Verified for 4.25 M3 using I20220817-0600 build
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/158,Java: Refactoring of Interface Implementation no longer possible,closed,2022-07-13 13:36:00+00:00,2022-07-15 03:06:44+00:00,1,1,rename interface,fail to refactoring,nan,Incorrect Type Resolving,"Java: Refactoring of Interface Implementation no longer possible #158
+Given the following Java Interface
+public interface ITest {
+
+	public void wrongName();
+
+}
+
+
+
+
+
+
+
+
+
+
+
+and implementing class
+public class Test implements ITest {
+   	
+   	
+	public static void main(String[] args) throws Exception {
+		new Test().wrongName();
+	}
+
+	
+	public void wrongName() {
+		
+	}
+
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+Until Eclipse 4.23 it was possible to do a refactor/rename of ""wrongName"" in the implementing class. The definition in the intervace was renamed too, refactoring complete.
+Now after upgrading to Eclipse 4.24 it is no longer pssible do do this. A refactor/rename in the class does nothing at all. It does NOT show any way to edit the name of the procedure. Doing so in the interface file still works fine.
+I saw a lombok-problem for this while searching for a hint bot we don't habe and never did have a lombok plugin.
+@jjohnstn This seems to be occurring because of fix for Bug 99622 -  [rename] Rename method misses ambiguously overridden method . Can you please have a look at this for 4.25 M3
+Will do.
+Verified for 4.25 M3 using I20220817-0600 build
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/338,Refactor - Move Type to New File produces non-compilable code,closed,2022-12-01 21:39:22+00:00,2022-12-02 00:54:31+00:00,1,1,Move Type to New File,compile error,nan,ast rewrite issue,"Refactor - Move Type to New File produces non-compilable code #338
+Taken from Bug 567020:  https://bugs.eclipse.org/bugs/show_bug.cgi?id=567020
+Original class:
+class Foo {
+    static class Bar {
+        static class X {
+            static void method() {
+                var x = new X();
+                System.out.println(x);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+After using Refactor/Move Type to New File on class Bar:
+Foo.java
+import Foo.Bar; // <-- wrong
+
+class Foo {
+}
+
+
+
+
+
+
+
+
+
+
+Bar.java
+import Foo.Bar.X; // <-- wrong
+
+class Bar {
+    static class X {
+        static void method() {
+            Bar.var x = new X(); // <-- wrong
+            System.out.println(x);
+        }
+    }
+}
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/197,NPE when using Inline Refactoring on method with varargs within switch expression,closed,2022-08-03 20:56:52+00:00,2022-08-11 06:15:31+00:00,1,1,inline method,exception,nan,ast rewrite issue,"NPE when using Inline Refactoring on method with varargs within switch expression #197
+This is a pretty specific case, though I did try to narrow it down as much as I could, so I'd say it's probably not the highest of priorities.
+Create a project based on the given sample source file. You'll need at least Java 14 to use the switch expression syntax :
+Main.java
+package org.example;
+public class Main {
+	public static String format (String... input) {
+		return """";
+	}
+	public static void main(String[] args) {
+		int value = 0;
+		String message = switch (value) {
+			case 0 -> format("""");
+			default -> """";
+		};
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+Select the only format reference in main()
+Refactor -> Inline using whichever method you prefer (eg. Refactor menu item, or context menu)
+Select Preview or Ok (also I think playing with any of the options shouldn't matter)
+You should see the following error in the Error Log view :
+
+
+stacktrace
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:395)
+	at org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2.run(RefactoringWizardDialog2.java:324)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:662)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:504)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:77)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:113)
+	at org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2.nextOrPreviewPressed(RefactoringWizardDialog2.java:493)
+	at org.eclipse.ltk.internal.ui.refactoring.RefactoringWizardDialog2$1.widgetSelected(RefactoringWizardDialog2.java:693)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:252)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5794)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5025)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4477)
+	at org.eclipse.jface.window.Window.runEventLoop(Window.java:823)
+	at org.eclipse.jface.window.Window.open(Window.java:799)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:190)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startInlineMethodRefactoring(RefactoringExecutionStarter.java:336)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.InlineMethodAction.tryInlineMethod(InlineMethodAction.java:151)
+	at org.eclipse.jdt.ui.actions.InlineAction.run(InlineAction.java:127)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:278)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:5794)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1529)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:5025)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4477)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:643)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:550)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:171)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+	at org.eclipse.equinox.launcher.Main.main(Main.java:1440)
+Caused by: java.lang.NullPointerException: Cannot invoke ""org.eclipse.jdt.core.dom.rewrite.ListRewrite.insertAt(org.eclipse.jdt.core.dom.ASTNode, int, org.eclipse.text.edits.TextEditGroup)"" because ""this.fListRewrite"" is null
+	at org.eclipse.jdt.internal.corext.refactoring.code.CallInliner.addNewLocals(CallInliner.java:569)
+	at org.eclipse.jdt.internal.corext.refactoring.code.CallInliner.perform(CallInliner.java:456)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineMethodRefactoring.checkFinalConditions(InlineMethodRefactoring.java:315)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Created eclipse-jdt/eclipse.jdt.core#305 to track the incorrect formatting of the inlined code.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/113,ArrayOutofBounds exception during refactor operation,closed,2022-06-21 06:08:03+00:00,2022-06-22 18:23:42+00:00,1,1,inline variable,exception,nan,overly weak preconditions,"ArrayOutofBounds exception during refactor operation #113
+Installation details:
+Eclipse SDK
+Version: 2022-06 (4.25)
+Build id: I20220619-1800
+OS: Windows 10, v.10.0, x86_64 / win32
+Java vendor: Eclipse Adoptium
+Java runtime version: 17.0.3+7
+Java version: 17.0.3
+Got the following exception stack traceerror while doing refactor inline operation
+null
+org.eclipse.ltk.ui.refactoring
+Error
+Tue Jun 21 11:34:43 IST 2022
+Internal Error
+
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:395)
+	at org.eclipse.jface.dialogs.ProgressMonitorDialog.run(ProgressMonitorDialog.java:470)
+	at org.eclipse.ui.internal.progress.ProgressMonitorJobsDialog.run(ProgressMonitorJobsDialog.java:230)
+	at org.eclipse.ui.internal.progress.ProgressManager.lambda$26(ProgressManager.java:827)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ui.internal.progress.ProgressManager.busyCursorWhile(ProgressManager.java:860)
+	at org.eclipse.ui.internal.progress.ProgressManager.busyCursorWhile(ProgressManager.java:836)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.checkInitialConditions(RefactoringWizardOpenOperation.java:222)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:173)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startInlineTempRefactoring(RefactoringExecutionStarter.java:345)
+	at org.eclipse.jdt.ui.actions.InlineTempAction.tryInlineTemp(InlineTempAction.java:121)
+	at org.eclipse.jdt.ui.actions.InlineAction.run(InlineAction.java:120)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:278)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4251)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:4068)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3645)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:644)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:551)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:156)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+Caused by: java.lang.IndexOutOfBoundsException: Index -1 out of bounds for length 0
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:64)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:70)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:266)
+	at java.base/java.util.Objects.checkIndex(Objects.java:359)
+	at java.base/java.util.ArrayList.remove(ArrayList.java:504)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.createFullyQualifiedName(InlineTempRefactoring.java:689)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.getAlternativeQualifications(InlineTempRefactoring.java:585)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.checkClashes(InlineTempRefactoring.java:257)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.checkInitialConditions(InlineTempRefactoring.java:243)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:84)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Root exception:
+java.lang.IndexOutOfBoundsException: Index -1 out of bounds for length 0
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:64)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:70)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:266)
+	at java.base/java.util.Objects.checkIndex(Objects.java:359)
+	at java.base/java.util.ArrayList.remove(ArrayList.java:504)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.createFullyQualifiedName(InlineTempRefactoring.java:689)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.getAlternativeQualifications(InlineTempRefactoring.java:585)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.checkClashes(InlineTempRefactoring.java:257)
+	at org.eclipse.jdt.internal.corext.refactoring.code.InlineTempRefactoring.checkInitialConditions(InlineTempRefactoring.java:243)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:84)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Can you please add the sample code and steps to reproduce the issue?
+I don't have a sample code here. I found while using eclipse.
+Here the snippet where I got this error
+ReferenceBinding declaringClass = method.declaringClass;
+if ((declaringClass != null)
+	&&(declaringClass.id == getJavaLangInvokeMethodHandle().id||declaringClass.id == getJavaLangInvokeVarHandle().id)) {
+	method.tagBits |= TagBits.AnnotationPolymorphicSignature;
+}
+
+
+
+
+
+
+
+
+
+
+Steps:
+
+Select declaringClass  variable
+Right click and select Inline.
+I couldn't find the snippet in my setup to reproduce. But looking at the stack trace, a check can be added at the error location. This code was added via Bug 367536.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/221,ClassCastException when renaming interface methods,closed,2022-08-17 09:39:59+00:00,2022-08-24 08:36:40+00:00,1,0,rename method,exception,nan,nan,"ClassCastException when renaming interface methods #221
+Often when renaming methods in interfaces, it fails with an error in the log. There is no indication that anything went wrong unless you specifically look in the log. Unfortunately I can't provide instructions for reproduction, it just seems to happen randomly, and persist over restarts for specific method names.
+For example, you may have an interface like this:
+public interface Nameable {
+
+    @NotNull String getName();
+
+}
+
+
+
+
+
+
+
+
+
+and an implementation:
+public record User(String name) implements Nameable {
+
+    @Override
+    public @NotNull String getName() {
+        return name;
+    }
+
+}
+
+
+
+
+
+
+
+
+
+When this issue occurs, you would not be able to rename this method.
+You can (obviously) change the name manually like this
+public interface Nameable {
+
+    @NotNull String getFirstName();
+
+}
+
+
+
+
+
+
+
+
+
+but references won't update. Refactoring will work again, but as soon as the method name returns back to when the issue first occurred, it will stop working again.
+Sorry if there isn't enough information to fix it, but I can't find any pattern of what causes this.
+Judging from the stacktrace, this should be the correct repo. Sorry if it's not.
+Log (I couldn't attach):
+eclipse.buildId=4.24.0.I20220607-0700
+java.version=11.0.16
+java.vendor=Ubuntu
+BootLoader constants: OS=linux, ARCH=x86_64, WS=gtk, NL=en_GB
+Framework arguments:  -product org.eclipse.epp.package.java.product
+Command-line arguments:  -os linux -ws gtk -arch x86_64 -product org.eclipse.epp.package.java.product
+
+org.eclipse.e4.ui.workbench
+Error
+Wed Aug 17 10:11:27 BST 2022
+Execution exception for: ParameterizedCommand(Command(org.eclipse.jdt.ui.edit.text.java.rename.element,Rename - Refactoring ,
+		Rename the selected element,
+		Category(org.eclipse.jdt.ui.category.refactoring,Refactor - Java,Java Refactoring Actions,true),
+		org.eclipse.ui.internal.WorkbenchHandlerServiceHandler@6104691c,
+		,,true),null) in 
+	context chain: WorkbenchContext -> TrimmedWindowImpl (IDEWindow) Context -> PerspectiveImpl (org.eclipse.jdt.ui.JavaPerspective) Context -> PartImpl (org.eclipse.e4.ui.compatibility.editor)  removeOnHide org.eclipse.jdt.ui.CompilationUnitEditorContext
+
+org.eclipse.core.commands.ExecutionException: While executing the action, an exception occurred
+	at org.eclipse.jface.commands.ActionHandler.execute(ActionHandler.java:126)
+	at org.eclipse.ui.internal.handlers.E4HandlerProxy.execute(E4HandlerProxy.java:97)
+	at jdk.internal.reflect.GeneratedMethodAccessor79.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.eclipse.e4.core.internal.di.MethodRequestor.execute(MethodRequestor.java:58)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invokeUsingClass(InjectorImpl.java:317)
+	at org.eclipse.e4.core.internal.di.InjectorImpl.invoke(InjectorImpl.java:251)
+	at org.eclipse.e4.core.contexts.ContextInjectionFactory.invoke(ContextInjectionFactory.java:173)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceHandler.execute(HandlerServiceHandler.java:156)
+	at org.eclipse.core.commands.Command.executeWithChecks(Command.java:488)
+	at org.eclipse.core.commands.ParameterizedCommand.executeWithChecks(ParameterizedCommand.java:485)
+	at org.eclipse.e4.core.commands.internal.HandlerServiceImpl.executeHandler(HandlerServiceImpl.java:213)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.executeCommand(KeyBindingDispatcher.java:308)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.press(KeyBindingDispatcher.java:580)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.processKeyEvent(KeyBindingDispatcher.java:647)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher.filterKeySequenceBindings(KeyBindingDispatcher.java:439)
+	at org.eclipse.e4.ui.bindings.keys.KeyBindingDispatcher$KeyDownFilter.handleEvent(KeyBindingDispatcher.java:96)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.filterEvent(Display.java:1908)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1528)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1555)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1538)
+	at org.eclipse.swt.widgets.Widget.sendKeyEvent(Widget.java:1577)
+	at org.eclipse.swt.widgets.Widget.gtk_key_press_event(Widget.java:937)
+	at org.eclipse.swt.widgets.Control.gtk_key_press_event(Control.java:4004)
+	at org.eclipse.swt.widgets.Composite.gtk_key_press_event(Composite.java:921)
+	at org.eclipse.swt.widgets.Widget.windowProc(Widget.java:2434)
+	at org.eclipse.swt.widgets.Control.windowProc(Control.java:6832)
+	at org.eclipse.swt.widgets.Display.windowProc(Display.java:6114)
+	at org.eclipse.swt.internal.gtk3.GTK3.gtk_main_do_event(Native Method)
+	at org.eclipse.swt.widgets.Display.eventProc(Display.java:1552)
+	at org.eclipse.swt.internal.gtk3.GTK3.gtk_main_iteration_do(Native Method)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:4474)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:644)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:551)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:156)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+	at org.eclipse.equinox.launcher.Main.main(Main.java:1440)
+Caused by: java.lang.ClassCastException: class org.eclipse.jdt.internal.core.SourceField cannot be cast to class org.eclipse.jdt.core.IMethod (org.eclipse.jdt.internal.core.SourceField and org.eclipse.jdt.core.IMethod are in unnamed module of loader org.eclipse.osgi.internal.loader.EquinoxClassLoader @2afe825a)
+	at org.eclipse.jdt.internal.corext.refactoring.rename.RippleMethodFinder2$1MethodRequestor.acceptSearchMatch(RippleMethodFinder2.java:437)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.report(MatchLocator.java:2185)
+	at org.eclipse.jdt.internal.core.search.matching.MethodLocator.matchReportReference(MethodLocator.java:510)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.reportMatching(MatchLocator.java:2735)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.reportMatching(MatchLocator.java:2940)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.reportMatching(MatchLocator.java:3285)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.reportMatching(MatchLocator.java:2862)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.process(MatchLocator.java:2037)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.locateMatches(MatchLocator.java:1310)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.locateMatches(MatchLocator.java:1390)
+	at org.eclipse.jdt.internal.core.search.matching.MatchLocator.locateMatches(MatchLocator.java:1532)
+	at org.eclipse.jdt.internal.core.search.JavaSearchParticipant.locateMatches(JavaSearchParticipant.java:135)
+	at org.eclipse.jdt.internal.core.search.BasicSearchEngine.findMatches(BasicSearchEngine.java:251)
+	at org.eclipse.jdt.internal.core.search.BasicSearchEngine.search(BasicSearchEngine.java:602)
+	at org.eclipse.jdt.core.search.SearchEngine.search(SearchEngine.java:670)
+	at org.eclipse.jdt.internal.corext.refactoring.rename.RippleMethodFinder2.findAllDeclarations(RippleMethodFinder2.java:469)
+	at org.eclipse.jdt.internal.corext.refactoring.rename.RippleMethodFinder2.findAllRippleMethods(RippleMethodFinder2.java:207)
+	at org.eclipse.jdt.internal.corext.refactoring.rename.RippleMethodFinder2.getAllRippleMethods(RippleMethodFinder2.java:187)
+	at org.eclipse.jdt.internal.corext.refactoring.rename.RippleMethodFinder2.getRelatedMethodsInCompilationUnit(RippleMethodFinder2.java:166)
+	at org.eclipse.jdt.internal.ui.refactoring.reorg.RenameLinkedMode.start(RenameLinkedMode.java:281)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RenameJavaElementAction.run(RenameJavaElementAction.java:250)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RenameJavaElementAction.doRun(RenameJavaElementAction.java:190)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RenameJavaElementAction.run(RenameJavaElementAction.java:162)
+	at org.eclipse.jdt.ui.actions.RenameAction.run(RenameAction.java:121)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:278)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.commands.ActionHandler.execute(ActionHandler.java:121)
+	... 55 more
+Please try with latest I-build or 4.25 M3: https://download.eclipse.org/eclipse/downloads/
+Fixes have been made in this area for 2022-09.  I tried your scenario and it works fine.
+I'm still not sure how consistent it is, or if it's at all related to the name, but I still have the same project where I can't rename the method.
+It appears to have been fixed in 2022-09.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/190,"iterator declaration missing after ""enhanced foreach cleanup"" in case of more than one use of declared iterator",closed,2022-08-01 09:45:12+00:00,2022-08-12 02:19:16+00:00,1,1,enhanced foreach cleanup,compile error,nan,overly weak preconditions,"iterator declaration missing after ""enhanced foreach cleanup"" in case of more than one use of declared iterator #190
+See a code sample for this issue:
+
+The declared variable is used twice but after refactoring the first one the declared variable is no longer available.
+Sample code at
+carstenartur/eclipse.pde@b5abc23
+Verified for 4.25 M3 using I20220817-0600 build
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/156,[19] - Refactor does not work for record pattern,closed,2022-07-13 06:10:53+00:00,2022-08-04 06:23:54+00:00,1,1,rename variable,not available,record,selection parsing issue,"[19] - Refactor does not work for record pattern #156
+@SuppressWarnings(""preview"")public class X {
+public static void printLowerRight(Rectangle r) {
+	int res = switch(r) {
+	case Rectangle(ColoredPoint(Point(int xy, int y), Color c),
+	                   ColoredPoint lr) r1  -> {
+	                	   //r1.
+	                	   
+	                	   r1=null;
+				System.out.println(""x= "" + xy);
+				System.out.println(""y= "" + y);
+				System.out.println(""lr= "" + lr);
+				System.out.println(""lr.c()= "" + lr.c());
+				System.out.println(""lr.p()= "" + lr.p());
+				System.out.println(""lr.p().x()= "" + lr.p().x());
+				System.out.println(""lr.p().y()= "" + lr.p());
+				System.out.println(""c= "" + c);
+				System.out.println(""r1= "" + r1);
+		yield xy;  
+	} 
+	default -> 0;
+	}; 
+	System.out.println(""Returns: "" + res);
+}
+public static void main(String[] args) {
+	printLowerRight(new Rectangle(new ColoredPoint(new Point(15, 5), Color.BLUE), 
+	new ColoredPoint(new Point(30, 10), Color.RED)));
+}
+}
+record Point(int x, int y) {}
+enum Color { RED, GREEN, BLUE }
+record ColoredPoint(Point p, Color c) {}
+record Rectangle(ColoredPoint upperLeft, ColoredPoint lowerRight) {}
+
+
+
+
+
+
+
+
+
+
+Select xy on line number 4 and try to rename to xyz. Nothing happens. Please note search correctly return the 2 matches.
+Also try to rename lr on line number 5. That fails too. Search gives the correct result (5 matches by Command-Shift-G)
+Currently, there is no AST node for variables like xy and lr. This should be revisited after RecordPattern DOM AST changes is merged.
+These cases are now working fine.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/120,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used"" #120
+I tried to apply the ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used"" being selected to the equinox code base and it failed with the error below. If the second option is selected everything works fine.
+Furthermore I noticed that the list of selected actions in the Use custom profile section (reached via Right click on project -> Source -> Clean up...) lists the action twice:
+- Convert to enhanced 'for' loops
+- Convert to enhanced 'for' loops
+
+
+
+
+
+
+
+
+
+
+If I additionally select ""Only if loop variable used"" the list looks like this (which actually also seems duplicated):
+Convert to enhanced 'for' loops only if the loop variable is used
+Convert to enhanced 'for' loops
+
+
+
+
+
+
+
+
+
+
+Product:
+Eclipse SDK
+
+Version: 2022-06 (4.25)
+Build id: I20220624-1800
+
+
+
+
+
+
+
+
+
+
+Exception Stack Trace of ""Internal Error"":
+java.lang.reflect.InvocationTargetException
+	at org.eclipse.jface.operation.ModalContext.run(ModalContext.java:395)
+	at org.eclipse.jface.wizard.WizardDialog.run(WizardDialog.java:1033)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.createChange(RefactoringWizard.java:662)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizard.computeUserInputSuccessorPage(RefactoringWizard.java:504)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.computeSuccessorPage(UserInputWizardPage.java:77)
+	at org.eclipse.ltk.ui.refactoring.UserInputWizardPage.getNextPage(UserInputWizardPage.java:113)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpRefactoringWizard$CleanUpConfigurationPage.getNextPage(CleanUpRefactoringWizard.java:437)
+	at org.eclipse.jface.wizard.WizardDialog.nextPressed(WizardDialog.java:910)
+	at org.eclipse.jface.wizard.WizardDialog.buttonPressed(WizardDialog.java:468)
+	at org.eclipse.jface.dialogs.Dialog.lambda$0(Dialog.java:619)
+	at org.eclipse.swt.events.SelectionListener$1.widgetSelected(SelectionListener.java:84)
+	at org.eclipse.swt.widgets.TypedListener.handleEvent(TypedListener.java:252)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4251)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:4068)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3645)
+	at org.eclipse.jface.window.Window.runEventLoop(Window.java:823)
+	at org.eclipse.jface.window.Window.open(Window.java:799)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.lambda$0(RefactoringWizardOpenOperation.java:190)
+	at org.eclipse.swt.custom.BusyIndicator.showWhile(BusyIndicator.java:74)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:209)
+	at org.eclipse.ltk.ui.refactoring.RefactoringWizardOpenOperation.run(RefactoringWizardOpenOperation.java:126)
+	at org.eclipse.jdt.internal.ui.refactoring.actions.RefactoringStarter.activate(RefactoringStarter.java:41)
+	at org.eclipse.jdt.internal.corext.refactoring.RefactoringExecutionStarter.startCleanupRefactoring(RefactoringExecutionStarter.java:257)
+	at org.eclipse.jdt.internal.ui.actions.AllCleanUpsAction.performRefactoring(AllCleanUpsAction.java:71)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.runOnMultiple(CleanUpAction.java:215)
+	at org.eclipse.jdt.internal.ui.actions.CleanUpAction.run(CleanUpAction.java:119)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.dispatchRun(SelectionDispatchAction.java:274)
+	at org.eclipse.jdt.ui.actions.SelectionDispatchAction.run(SelectionDispatchAction.java:252)
+	at org.eclipse.jface.action.Action.runWithEvent(Action.java:474)
+	at org.eclipse.jface.action.ActionContributionItem.handleWidgetSelection(ActionContributionItem.java:580)
+	at org.eclipse.jface.action.ActionContributionItem.lambda$4(ActionContributionItem.java:414)
+	at org.eclipse.swt.widgets.EventTable.sendEvent(EventTable.java:89)
+	at org.eclipse.swt.widgets.Display.sendEvent(Display.java:4251)
+	at org.eclipse.swt.widgets.Widget.sendEvent(Widget.java:1066)
+	at org.eclipse.swt.widgets.Display.runDeferredEvents(Display.java:4068)
+	at org.eclipse.swt.widgets.Display.readAndDispatch(Display.java:3645)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine$5.run(PartRenderingEngine.java:1155)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.e4.ui.internal.workbench.swt.PartRenderingEngine.run(PartRenderingEngine.java:1046)
+	at org.eclipse.e4.ui.internal.workbench.E4Workbench.createAndRunUI(E4Workbench.java:155)
+	at org.eclipse.ui.internal.Workbench.lambda$3(Workbench.java:644)
+	at org.eclipse.core.databinding.observable.Realm.runWithDefault(Realm.java:338)
+	at org.eclipse.ui.internal.Workbench.createAndRunWorkbench(Workbench.java:551)
+	at org.eclipse.ui.PlatformUI.createAndRunWorkbench(PlatformUI.java:156)
+	at org.eclipse.ui.internal.ide.application.IDEApplication.start(IDEApplication.java:152)
+	at org.eclipse.equinox.internal.app.EclipseAppHandle.run(EclipseAppHandle.java:203)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.runApplication(EclipseAppLauncher.java:136)
+	at org.eclipse.core.runtime.internal.adaptor.EclipseAppLauncher.start(EclipseAppLauncher.java:104)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:402)
+	at org.eclipse.core.runtime.adaptor.EclipseStarter.run(EclipseStarter.java:255)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:77)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at org.eclipse.equinox.launcher.Main.invokeFramework(Main.java:659)
+	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:596)
+	at org.eclipse.equinox.launcher.Main.run(Main.java:1467)
+Caused by: java.lang.IllegalArgumentException: Invalid identifier : >List<V><
+	at org.eclipse.jdt.core.dom.SimpleName.setIdentifier(SimpleName.java:247)
+	at org.eclipse.jdt.core.dom.AST.newSimpleName(AST.java:2777)
+	at org.eclipse.jdt.core.dom.AST.newName(AST.java:2427)
+	at org.eclipse.jdt.internal.corext.fix.helper.AbstractTool.addImport(AbstractTool.java:66)
+	at org.eclipse.jdt.internal.corext.fix.helper.WhileToForEach.rewrite(WhileToForEach.java:424)
+	at org.eclipse.jdt.internal.corext.fix.helper.WhileToForEach.rewrite(WhileToForEach.java:1)
+	at org.eclipse.jdt.internal.corext.fix.UseIteratorToForLoopFixCore$1.rewriteAST(UseIteratorToForLoopFixCore.java:77)
+	at org.eclipse.jdt.internal.corext.fix.CompilationUnitRewriteOperationsFixCore.createChange(CompilationUnitRewriteOperationsFixCore.java:98)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpFixWrapper.createChange(CleanUpFixWrapper.java:46)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:775)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:82)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+Root exception:
+java.lang.IllegalArgumentException: Invalid identifier : >List<V><
+	at org.eclipse.jdt.core.dom.SimpleName.setIdentifier(SimpleName.java:247)
+	at org.eclipse.jdt.core.dom.AST.newSimpleName(AST.java:2777)
+	at org.eclipse.jdt.core.dom.AST.newName(AST.java:2427)
+	at org.eclipse.jdt.internal.corext.fix.helper.AbstractTool.addImport(AbstractTool.java:66)
+	at org.eclipse.jdt.internal.corext.fix.helper.WhileToForEach.rewrite(WhileToForEach.java:424)
+	at org.eclipse.jdt.internal.corext.fix.helper.WhileToForEach.rewrite(WhileToForEach.java:1)
+	at org.eclipse.jdt.internal.corext.fix.UseIteratorToForLoopFixCore$1.rewriteAST(UseIteratorToForLoopFixCore.java:77)
+	at org.eclipse.jdt.internal.corext.fix.CompilationUnitRewriteOperationsFixCore.createChange(CompilationUnitRewriteOperationsFixCore.java:98)
+	at org.eclipse.jdt.internal.ui.fix.CleanUpFixWrapper.createChange(CleanUpFixWrapper.java:46)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.calculateChange(CleanUpRefactoring.java:775)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.calculateSolutions(CleanUpRefactoring.java:301)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpASTRequestor.acceptAST(CleanUpRefactoring.java:279)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:1008)
+	at org.eclipse.jdt.core.dom.CompilationUnitResolver.resolve(CompilationUnitResolver.java:692)
+	at org.eclipse.jdt.core.dom.ASTParser.createASTs(ASTParser.java:954)
+	at org.eclipse.jdt.internal.corext.dom.ASTBatchParser.createASTs(ASTBatchParser.java:82)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring$CleanUpFixpointIterator.next(CleanUpRefactoring.java:399)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.cleanUpProject(CleanUpRefactoring.java:682)
+	at org.eclipse.jdt.internal.corext.fix.CleanUpRefactoring.checkFinalConditions(CleanUpRefactoring.java:642)
+	at org.eclipse.ltk.core.refactoring.CheckConditionsOperation.run(CheckConditionsOperation.java:86)
+	at org.eclipse.ltk.core.refactoring.CreateChangeOperation.run(CreateChangeOperation.java:122)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2380)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2405)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:122)
+OK, I was able to boil it down to the following method:
+private static <K, V> List<V> method(Map<K, List<V>> map) {
+	List<V> results = new ArrayList<>();
+	Iterator<List<V>> iterator = map.values().iterator();
+	while (iterator.hasNext()) {
+		results.addAll(iterator.next());
+	}
+	return results;
+}
+
+
+
+
+
+
+
+
+
+
+When running only Convert to enhanced 'for' loops without the option only if the loop variable is used then the clean up fails with the error above (even in the preview).
+Furthermore if I select that option and run Convert to enhanced 'for' loops only if the loop variable is used that method is not changed, but I would expect that it is converted to something like:
+private static <K, V> List<V> expected(Map<K, List<V>> map) {
+	List<V> results = new ArrayList<>();
+	for (List<V> value : map.values()) {
+		results.addAll(value);
+	}
+	return results;
+}
+
+
+
+
+
+
+
+
+
+
+@jjohnstn, @carstenartur do you want to take a look at this?
+Thanks again for your patience and continued testing!
+Just a short remark: That there are two identical entries in the list is because there are two different cleanups bound to the identical constant
+import static org.eclipse.jdt.internal.corext.fix.CleanUpConstants.CONTROL_STATEMENTS_CONVERT_FOR_LOOP_ONLY_IF_LOOP_VAR_USED;
+import static org.eclipse.jdt.internal.corext.fix.CleanUpConstants.CONTROL_STATEMENTS_CONVERT_FOR_LOOP_TO_ENHANCED;
+
+
+
+
+
+
+
+
+
+
+
+
+For that the two different text messages do not need to be equal and the have not been in earlier versions. But now both make use of the same text
+
+https://github.com/eclipse-jdt/eclipse.jdt.ui/pull/55/files#diff-fe82b809bb16e49eedbb27bc774782b47cd4c9c44e9bce17087829f21d36fdf6
+If it is up to me we can discuss if there is a better way but lets hear what @jjohnstn thinks about it.
+Furthermore if I select that option and run Convert to enhanced 'for' loops only if the loop variable is used that method is not changed
+
+Regarding the above statement, As shown in the cleanup preview of Convert to enhanced 'for' loops only if the loop variable is used, we see that there is no loop variable.
+Just a short remark: That there are two identical entries in the list is because there are two different cleanups bound to the identical constant
+
+So the two cleanup actions use the same constant and are (de-)activated by the same checkbox in the UI, aren't they?
+Then I would consider it an implementation detail that there are actually two actions and present just one item in the UI.
+First of all @ktatavarthi, thank you for your fix. I just opened a PR to add the presented reproducer as a JUnit test case. This test case also shows that there is a false import added with that fix. I was also able to reproduce that in an Editor of an Eclipse-app launched from my JDT workspace.
+
+
+Furthermore if I select that option and run Convert to enhanced 'for' loops only if the loop variable is used that method is not changed
+
+Regarding the above statement, As shown in the cleanup preview of Convert to enhanced 'for' loops only if the loop variable is used, we see that there is no loop variable.
+
+Yes after thinking about that I also came to the conclusion that I understood it wrong.
+I falsely assumed that this was referring to loops that use a counter variable like in the following snippet or similar for an array:
+	List<String> list = List.of("""");
+	for (int i = 0; i < list .size(); i++) {
+		System.out.println(""Hello World"");
+	}
+
+
+
+
+
+
+
+
+
+
+In these cases it would IMHO make sense to not use an enhanced for loop to avoid the iterator creation and I assumed that this was the motivation for the option only if the loop variable is used. In cases where the result of Iterator.next() is passed directly to a method I think it still makes sense to convert to an enhanced for-loop since the iterator is used anyway.
+If the motivation is really to avoid iterator creation it might be reasonable to refine the criteria for this sub-option to only skip the conversion to an enhanced loop if the loop variable after applying the clean up would not be used.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1529,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"[Bug][Inline Method Refactoring] Inline the method which contians super keyword in a static method result in the refactored program has syntax error #1529
+Steps to reproduce
+
+First, create a class A, then create a class B extends class A:
+
+public class A{
+    void bar() {}
+}
+
+public class B extends A {
+    void foo() {
+        super.bar();
+    }
+
+    static void err(B b) {
+        b.foo(); //inline call to foo()
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+Like I commented on the above code, left click the foo() in the b.foo(). Then, right click -> Refactor -> Inline. The default configuration to inline this method is following, click ok:
+
+
+
+Use the default configuration, the program is successfully refactored without any warning or exception. The refactored program is following, which contains syntax error. Because the super keyword cannot be used in a static context:
+
+public class A{
+    void bar() {}
+}
+
+public class B extends A {
+    void foo() {
+        super.bar();
+    }
+
+    static void err(B b) {
+        super.bar(); //inline call to foo()
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+If use the first configuration instead like following:
+
+
+
+The refactored program also contains syntax error. The refactored program is following:
+
+public class A{
+    void bar() {}
+}
+
+public class B extends A {
+    static void err(B b) {
+        super.bar(); //inline call to foo()
+    }
+}
+
+
+
+
+
+
+
+
+
+
+Expected Behavior
+In this situation, I would expect the Eclipse could give a warning message.
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+JDK Version
+java version ""22.0.1"" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1530,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"[Bug][Move Static Memebers Refactoring] Move static members refactoring results in behavior change #1530
+Steps to reproduce
+
+First, create a class A, then create a class B extends class A, and a class C:
+
+public class A {
+    static boolean truth = true;
+    static void important() {
+        System.out.println(1);
+    }
+}
+
+public class B extends A{
+    B() {
+        important();
+        System.out.println(truth);
+    }
+    
+    public static void main(String[] args) {
+    	B b = new B();
+    }
+}
+
+public class C{
+    static boolean truth = false;//move truth to class B
+    static void important() {// move method important to class B
+        System.out.println(2);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+Run the class B, the initial output is:
+
+1
+true
+
+
+
+
+
+
+
+
+
+
+
+Now, in class C, first choose property truth, right click -> Refactor -> move -> set the destination as class B -> click ok. Then  choose method important(), move it to the class B too, the default configuration is following:
+
+
+
+The whole process is performed successfully without any warning message or exception. The refactored program is following:
+
+public class A {
+    static boolean truth = true;
+    static void important() {
+        System.out.println(1);
+    }
+}
+
+public class B extends A{
+    static boolean truth = false;//move truth to class B
+
+	B() {
+        important();
+        System.out.println(truth);
+    }
+    
+    public static void main(String[] args) {
+    	B b = new B();
+    }
+
+	static void important() {// move method important to class B
+	    System.out.println(2);
+	}
+}
+
+public class C{
+}
+
+
+
+
+
+
+
+
+
+
+
+Now, run the class B again, the output is:
+
+2
+false
+
+
+
+
+
+
+
+
+
+
+
+As you can see, the output is totally changed. The behavior of the refactored program is changed without any warning.
+
+Expected Behavior
+I would expect the Eclipse could give a warning message about the behavior change.
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+JDK Version
+java version ""22.0.1"" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1531,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"[Bug][Rename Refactoring] Avoid the perform of rename refactoring at the implicit enum elements (e.g. values() method) #1531
+Steps to reproduce
+
+Create a class A:
+
+public class A {
+    {
+        int length = new String[0].length;// click length, then rename length
+    }
+    enum M {
+        ;
+        {
+            M.valueOf("""");// click valueOf, then rename valueOf
+        }
+    }
+    enum S {
+        ;
+        {
+            S.values();// click values, then rename values
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+Like I commented on the above code, left click length, valueOf, or values, then right click -> Refactor -> Rename, the name is shown editable in a small box now, like following:
+
+
+
+Input a name for length since it is editable, let's say the new name is len, the refactored program would contain syntax error.
+
+Expected Behavior
+The rename refactoring for those methods should be impossible, maybe a warning message should be given when renaming those methods instead of showing the editable little box.
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+JDK Version
+java version ""22.0.1"" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+This is working as expected.  There was a bug: https://bugs.eclipse.org/bugs/show_bug.cgi?id=179473 that included a fix to fall-back to a local rename edit if the selection could not be resolved.  In such case, the status line contains an error message:
+""Element could not be resolved, started 'Rename in file'""
+In this particular case, nothing is selected and there is no element.  The error message in the status line comes up as expected and at that point it is just an editor rename without Java context.
+I need to think about this some more.  While it is behaving as expected, perhaps a partial selection (including 0 selection) should consider searching for the word (i.e. up to next non-digit/alphanumeric character).  This would be more consistent since the rename in file seems to do so.
+After thinking about it, the behavior is working as expected, so no bug, but the status message needs to be updated so what is happening is clear.  I have posted a patch that will clarify that a refactoring rename is not possible but a simple text rename in file is occurring.  This is consistent because in all cases a field access cannot be refactored to a new name but if one chose to specify another valid field or method that would be ok.  If the user chooses to name to an invalid field, it is marked in error and a quickfix will be offered to rename it to a valid field or method.
+Closing as working as expected with new message merged.
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1532,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"[Bug][Pull Up Refactoring] Pull up refactoring produces uncompilable program #1532
+Steps to reproduce
+
+Create a class A:
+
+public class A {
+    public interface Bar<T> { }
+
+    public interface Base<T> { }
+
+    public class Foo<T,U> implements Base<U> {
+        public void foo(Bar<U> bar) { }// pull method foo up to interface Base
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+Like I commented on the above code, left click method foo, then right click -> Refactor -> Pull Up, set the destination as interface Base, and use the default configuration as following, click Finish:
+
+
+
+The refactoring is performed without any warning or exception. The refactored program is following, which contains syntax error:
+
+public class A {
+    public interface Bar<T> { }
+
+    public interface Base<T> {
+
+		void foo(Bar<U> bar); }
+
+    public class Foo<T,U> implements Base<U> {
+        @Override
+		public void foo(Bar<U> bar) { }// pull method foo up to interface Base
+    }
+}
+
+
+
+
+
+
+
+
+
+
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+JDK Version
+java version ""22.0.1"" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+"
+https://github.com/eclipse-jdt/eclipse.jdt.ui/issues/1533,"Internal Error for ""Convert to enhanced 'for' loops"" clean-up without ""Only if loop variable used""",closed,2022-06-25 09:09:49+00:00,2022-06-27 13:06:02+00:00,1,1,Convert to enhanced 'for' loops,exception,nan,ast rewrite issue,"[Bug][Pull Up Refactoring] Pull up method refactoring for method in the inner class fails #1533
+Steps to reproduce
+
+Create a class A:
+
+public class A {
+    public class BaseInner {}
+
+    public class Outer {
+        public int x = 0;
+        public void foo(){};
+
+        public class Inner extends BaseInner {
+            void innerMethod() { // Pull this method up to class BaseInner
+                System.out.println(Outer.this.x);
+                Outer.this.foo();
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+Like I commented on the above code, left click method innerMethod, then right click -> Refactor -> Pull Up, set the destination as class BaseInner, and use the default configuration as following, click Finish:
+
+
+
+The refactoring is performed without any warning or exception. The refactored program is following, which contains syntax error:
+
+import com.my.hello.retester.A.Outer.Inner;
+
+public class A {
+    public class BaseInner {
+
+		void innerMethod(Inner inner) { // Pull this method up to class BaseInner
+		    System.out.println(inner.x);
+		    inner.foo();
+		}}
+
+    public class Outer {
+        public int x = 0;
+        public void foo(){};
+
+        public class Inner extends BaseInner {
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+JDK Version
+java version ""22.0.1"" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+"

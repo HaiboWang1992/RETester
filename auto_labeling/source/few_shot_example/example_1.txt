@@ -1,0 +1,64 @@
+<Example One Start>
+<Bug Report Content Start>
+[Bug][Pull Up Refactoring] Pull up method refactoring for method in the inner class fails #1533
+Steps to reproduce
+Create a class A:
+public class A {
+    public class BaseInner {}
+
+    public class Outer {
+        public int x = 0;
+        public void foo(){};
+
+        public class Inner extends BaseInner {
+            void innerMethod() { // Pull this method up to class BaseInner
+                System.out.println(Outer.this.x);
+                Outer.this.foo();
+            }
+        }
+    }
+}
+Like I commented on the above code, left click method innerMethod, then right click -> Refactor -> Pull Up, set the destination as class BaseInner, and use the default configuration as following, click Finish:
+image
+
+The refactoring is performed without any warning or exception. The refactored program is following, which contains syntax error:
+import com.my.hello.retester.A.Outer.Inner;
+
+public class A {
+    public class BaseInner {
+
+        void innerMethod(Inner inner) { // Pull this method up to class BaseInner
+            System.out.println(inner.x);
+            inner.foo();
+        }}
+
+    public class Outer {
+        public int x = 0;
+        public void foo(){};
+
+        public class Inner extends BaseInner {
+        }
+    }
+}
+Environment
+OS Version
+Windows 10, 64-bit Operating System, x64-based processor
+
+Eclipse Version
+Eclipse IDE for Enterprise Java and Web Developers (includes Incubating components)
+Version: 2024-06 (4.32.0)
+Build id: 20240606-1231
+
+JDK Version
+java version "22.0.1" 2024-04-16
+Java(TM) SE Runtime Environment (build 22.0.1+8-16)
+Java HotSpot(TM) 64-Bit Server VM (build 22.0.1+8-16, mixed mode, sharing)
+<Bug Report Content End>
+
+Extracted information for the above bug report in JSON format:
+{
+  "RefactoringType": "pull up method",
+  "Symptom": "compile error",
+  "InputProgramCharacteristic": "inner class"
+}
+<Example One End>
