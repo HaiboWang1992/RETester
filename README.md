@@ -14,4 +14,7 @@ There are five files, each represents the bug reports from different refactoring
 ### transferability_study
 Bugs found by our transferability study (Section 5 in our paper) are in this folder.
 
+### auto_labeling
+Th scripts and dataset for auto_labeling the bug reports using LLM.
+
 
