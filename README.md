@@ -1,9 +1,7 @@
 # Towards Understanding Refactoring Engine Bugs
 
-This repository consists of two folders: dataset, and transferability_study.
-
 ### dataset
-The dataset is in this folder.
+The dataset is in this folder. The corresponding raw data is in dataset/raw folder.
 There are five files, each represents the bug reports from different refactoring tools and bug tracker systems.
 1. Eclipse_bug_reports_from_bugzilla.csv: Eclipse refactoring bug reports from Bugzilla.
 2. Eclipse_bug_reports_from_github.csv: Eclipse refactoring bug reports from GitHub.
@@ -15,9 +13,12 @@ There are five files, each represents the bug reports from different refactoring
 Bugs found by our transferability study (Section 5 in our paper) are in this folder.
 
 ### auto_labeling
-Th scripts for auto_labeling the bug reports using LLM.
+The scripts for auto_labeling the bug reports using LLM.
 
 ### statistic_analysis
-Th scripts and results for statistic analysis (RQ5).
+The scripts and results for the statistic analysis (RQ5).
+
+### crawler
+The scripts for the bug reports collection.
 
 
