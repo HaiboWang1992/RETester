@@ -20,6 +20,7 @@ The scripts for auto_labeling the bug reports using LLM.
 
 ### statistic_analysis
 The scripts and results for the statistic analysis (RQ5).
+Please read the readme.md in its folder for more detailed information.
 
 ### crawler
 The scripts for the bug reports collection.
