@@ -23,6 +23,6 @@ The scripts and results for the statistic analysis (RQ5).
 Please read the readme.md in its folder for more detailed information.
 
 ### crawler
-The scripts for the bug reports collection.
+The scripts for the historical bug reports collection.
 
 
