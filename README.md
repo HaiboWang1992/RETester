@@ -14,6 +14,9 @@ Bugs found by our transferability study (Section 5 in our paper) are in this fol
 
 ### auto_labeling
 The scripts for auto_labeling the bug reports using LLM.
+- auto_labeling.py: the script for auto-labeling.
+- source/few_shot_example: human constructed examples for few-shot-learning.
+- target: evaluation dataset and labeling result.
 
 ### statistic_analysis
 The scripts and results for the statistic analysis (RQ5).
